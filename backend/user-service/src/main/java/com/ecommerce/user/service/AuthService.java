@@ -5,7 +5,7 @@ import com.ecommerce.user.dto.AuthResponse;
 import com.ecommerce.user.dto.LoginRequest;
 import com.ecommerce.user.dto.RegisterRequest;
 import com.ecommerce.user.repository.UserRepository;
-import com.ecommerce.user.security.JwtTokenProvider;
+import com.ecommerce.common.security.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -63,9 +63,10 @@ public class AuthService {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication);
 
         User user = userRepository.findByEmail(request.email()).orElseThrow();
+        // Assuming role is simple string in DB, usually it's "ROLE_USER"
+        String jwt = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
         com.ecommerce.user.domain.RefreshToken refreshToken = createRefreshToken(user);
 
         return new AuthResponse(jwt, refreshToken.getToken());
@@ -77,7 +78,7 @@ public class AuthService {
                 .map(this::verifyExpiration)
                 .map(com.ecommerce.user.domain.RefreshToken::getUser)
                 .map(user -> {
-                    String token = tokenProvider.generateTokenFromUsername(user.getEmail());
+                    String token = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
                     return new AuthResponse(token, request.refreshToken());
                 })
                 .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
