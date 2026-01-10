@@ -1,0 +1,10 @@
+CREATE TABLE payments (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    transaction_id VARCHAR(255),
+    amount DECIMAL(19, 2) NOT NULL,
+    status VARCHAR(50) NOT NULL, -- PENDING, COMPLETED, FAILED, REFUNDED
+    payment_method VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

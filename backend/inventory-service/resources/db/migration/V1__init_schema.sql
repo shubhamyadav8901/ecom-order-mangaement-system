@@ -1,0 +1,17 @@
+CREATE TABLE inventory (
+    id BIGSERIAL PRIMARY KEY,
+    product_id BIGINT NOT NULL UNIQUE,
+    available_stock INTEGER NOT NULL DEFAULT 0,
+    reserved_stock INTEGER NOT NULL DEFAULT 0,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE inventory_reservations (
+    id BIGSERIAL PRIMARY KEY,
+    order_id BIGINT NOT NULL,
+    product_id BIGINT NOT NULL,
+    quantity INTEGER NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    status VARCHAR(50) NOT NULL, -- RESERVED, CONFIRMED, CANCELLED
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
