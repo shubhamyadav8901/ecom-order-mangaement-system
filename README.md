@@ -63,7 +63,7 @@ For detailed architecture and design, see [docs/architecture.md](docs/architectu
     ```
 3.  Start the development server:
     ```bash
-    npm start
+    npm run dev
     ```
 
 ---
