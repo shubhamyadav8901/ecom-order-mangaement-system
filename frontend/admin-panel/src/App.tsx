@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { ProductManager } from './components/ProductManager';
+import { OrderDashboard } from './components/OrderDashboard';
 
 function App() {
   const [email, setEmail] = useState('');
@@ -8,7 +10,6 @@ function App() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // In real app, check for ADMIN role
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -18,7 +19,6 @@ function App() {
       if (response.ok) {
         localStorage.setItem('adminToken', data.accessToken);
         setToken(data.accessToken);
-        alert('Admin Login Successful');
       } else {
         alert('Login Failed');
       }
@@ -31,29 +31,38 @@ function App() {
     <div style={{ padding: '20px', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
       <h1>Admin Panel</h1>
       {!token ? (
-        <form onSubmit={handleLogin}>
-          <input
-            type="email"
-            placeholder="Admin Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button type="submit">Login</button>
-        </form>
+        <div style={{ maxWidth: '300px', margin: 'auto', background: 'white', padding: '20px', borderRadius: '8px' }}>
+          <h2>Admin Login</h2>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              style={{ padding: '8px' }}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              style={{ padding: '8px' }}
+            />
+            <button type="submit" style={{ padding: '10px' }}>Login</button>
+          </form>
+        </div>
       ) : (
         <div>
-          <h2>Dashboard</h2>
-          <p>Inventory & Product Management (Placeholder)</p>
-          <button onClick={() => {
-            localStorage.removeItem('adminToken');
-            setToken(null);
-          }}>Logout</button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2>Dashboard</h2>
+            <button onClick={() => {
+              localStorage.removeItem('adminToken');
+              setToken(null);
+            }}>Logout</button>
+          </div>
+
+          <ProductManager />
+          <OrderDashboard />
         </div>
       )}
     </div>
