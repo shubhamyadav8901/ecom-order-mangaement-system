@@ -1,4 +1,4 @@
-package com.ecommerce.user.security;
+package com.ecommerce.common.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
@@ -27,10 +27,28 @@ public class JwtTokenProvider {
     }
 
     public String generateToken(Authentication authentication) {
+        // This method assumes the principal is a Spring Security User
+        // We need to cast it or change the signature to accept more details
+        // But better to use the overloaded method with explicit ID and Role
         return generateTokenFromUsername(authentication.getName());
     }
 
+    public String generateToken(Long userId, String email, String role) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
+
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("userId", userId)
+                .claim("role", role)
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(key, SignatureAlgorithm.HS512)
+                .compact();
+    }
+
     public String generateTokenFromUsername(String username) {
+        // Fallback for refresh tokens or simple generation without claims
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
@@ -40,6 +58,26 @@ public class JwtTokenProvider {
                 .setExpiration(expiryDate)
                 .signWith(key, SignatureAlgorithm.HS512)
                 .compact();
+    }
+
+    public Long getUserIdFromJWT(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("userId", Long.class);
+    }
+
+    public String getRoleFromJWT(String token) {
+        Claims claims = Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
+
+        return claims.get("role", String.class);
     }
 
     public String getUsernameFromJWT(String token) {
