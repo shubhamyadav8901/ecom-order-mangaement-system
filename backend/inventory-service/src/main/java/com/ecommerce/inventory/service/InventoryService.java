@@ -102,7 +102,11 @@ public class InventoryService {
 
     @Transactional
     public void reserveOrderItems(Long orderId, java.util.List<com.ecommerce.inventory.event.OrderItemEvent> items) {
-        for (var item : items) {
+        // Sort items by product ID to prevent deadlocks
+        var sortedItems = new java.util.ArrayList<>(items);
+        sortedItems.sort(java.util.Comparator.comparingLong(com.ecommerce.inventory.event.OrderItemEvent::productId));
+
+        for (var item : sortedItems) {
             reserveStock(new ReservationRequest(orderId, item.productId(), item.quantity()));
         }
     }
