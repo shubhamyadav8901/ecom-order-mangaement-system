@@ -1,0 +1,24 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: product-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/product_db
+    username: admin
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:9a4f2c8d3b7e1g5h9j2k4l6n8o0p3q5r7t9u1v3x5y7z9a1b3c5d7e9f1g3h5j7k}
+    expiration-milliseconds: ${JWT_EXPIRATION:3600000} # 1 hour

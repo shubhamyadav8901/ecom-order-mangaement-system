@@ -1,0 +1,39 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: inventory-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/inventory_db
+    username: admin
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: inventoryReservedEvent:com.ecommerce.inventory.event.InventoryReservedEvent,inventoryFailedEvent:com.ecommerce.inventory.event.InventoryFailedEvent
+    consumer:
+      group-id: inventory-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.inventory.event.OrderCreatedEvent
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:9a4f2c8d3b7e1g5h9j2k4l6n8o0p3q5r7t9u1v3x5y7z9a1b3c5d7e9f1g3h5j7k}
+    expiration-milliseconds: ${JWT_EXPIRATION:3600000} # 1 hour

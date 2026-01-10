@@ -1,6 +1,5 @@
-package com.ecommerce.user.security;
+package com.ecommerce.common.security;
 
-import com.ecommerce.user.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,8 +21,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
+    @Autowired(required = false)
+    private org.springframework.security.core.userdetails.UserDetailsService userDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -33,7 +32,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
             String username = tokenProvider.getUsernameFromJWT(jwt);
 
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            UserDetails userDetails;
+            if (userDetailsService != null) {
+                userDetails = userDetailsService.loadUserByUsername(username);
+            } else {
+                // Extract role and userId from token
+                String role = tokenProvider.getRoleFromJWT(jwt);
+                Long userId = tokenProvider.getUserIdFromJWT(jwt);
+
+                java.util.List<org.springframework.security.core.GrantedAuthority> authorities = new java.util.ArrayList<>();
+                if (role != null) {
+                    authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority(role));
+                }
+
+                // Create a custom UserDetails or use standard User with username
+                // We could implement a custom principal that holds userId
+                userDetails = new CustomPrincipal(username, "", authorities, userId);
+            }
+
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDetails, null, userDetails.getAuthorities());
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
