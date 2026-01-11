@@ -20,57 +20,149 @@ For detailed architecture and design, see [docs/architecture.md](docs/architectu
 
 ## 🏗 High-Level Architecture
 
-* **Modular Monolith (Phase-1)**
-* Event-driven internally (Kafka)
-* Can be split into microservices later
+* **Modular Monolith**: Services are separated by modules but share a repo for easier development.
+* **Event-Driven**: Uses **Kafka** for the Order Saga pattern (Order -> Inventory -> Payment).
+* **API Gateway**: **Nginx** routes traffic to backend services and frontend apps.
+* **Frontend**: React + TypeScript (Vite).
 
 ---
 
-## 🚀 How to Run
+## 🚀 How to Run (Step-by-Step)
 
-### Prerequisites
+Follow these instructions to run the entire system locally.
 
-* Docker
-* Docker Compose
-* Java 17+ (for Backend)
-* Node.js (for Frontend)
+### 📋 Prerequisites
 
-### Running with Docker
+Ensure you have the following installed:
+*   **Java 17+** (`java -version`)
+*   **Maven** (`mvn -version`)
+*   **Node.js 18+** (`node -v`)
+*   **Docker** & **Docker Compose** (`docker-compose -v`)
 
-1.  Clone the repository.
-2.  Navigate to the `infra/docker` directory (once populated).
+### 1️⃣ Start Infrastructure
+
+Start the databases (Postgres), Message Broker (Kafka), Cache (Redis), and API Gateway (Nginx).
+
+1.  Open a terminal.
+2.  Navigate to the infrastructure folder:
     ```bash
     cd infra/docker
+    ```
+3.  Start the containers in the background:
+    ```bash
     docker-compose up -d
     ```
-    *(Note: Docker configurations are currently in setup phase)*
-
-### Manual Setup (Development)
-
-#### Backend
-1.  Navigate to `backend/`.
-2.  Build the project:
+4.  Verify they are running:
     ```bash
-    ./mvnw clean install
+    docker ps
     ```
-3.  Run the application.
+    *You should see containers for postgres, kafka, zookeeper, redis, and nginx.*
 
-#### Frontend
-1.  Navigate to `frontend/`.
-2.  Install dependencies:
+### 2️⃣ Build and Run Backend
+
+The backend consists of 5 microservices. You need to build them and then run them.
+
+1.  **Build the Project**:
+    Navigate to the `backend` folder and build all modules:
     ```bash
-    npm install
+    cd backend
+    mvn clean install -DskipTests
     ```
-3.  Start the development server:
+
+2.  **Run the Services**:
+    You need to run each service. It is easiest to open **5 separate terminal tabs/windows**, navigate to `backend`, and run:
+
+    *   **Terminal 1 (User Service - Port 8081)**:
+        ```bash
+        mvn -pl user-service spring-boot:run
+        ```
+    *   **Terminal 2 (Product Service - Port 8082)**:
+        ```bash
+        mvn -pl product-service spring-boot:run
+        ```
+    *   **Terminal 3 (Inventory Service - Port 8083)**:
+        ```bash
+        mvn -pl inventory-service spring-boot:run
+        ```
+    *   **Terminal 4 (Order Service - Port 8084)**:
+        ```bash
+        mvn -pl order-service spring-boot:run
+        ```
+    *   **Terminal 5 (Payment Service - Port 8085)**:
+        ```bash
+        mvn -pl payment-service spring-boot:run
+        ```
+
+    *Wait for all services to start up completely.*
+
+### 3️⃣ Run Frontend Applications
+
+The frontend consists of two React applications.
+
+1.  **Customer Web App** (For browsing and buying):
+    *   Open a new terminal.
+    *   Navigate to the folder:
+        ```bash
+        cd frontend/customer-web
+        ```
+    *   Install dependencies:
+        ```bash
+        npm install
+        ```
+    *   Start the app:
+        ```bash
+        npm run dev
+        ```
+    *   It will run on **http://localhost:5173**.
+
+2.  **Admin Panel** (For managing products and inventory):
+    *   Open another terminal.
+    *   Navigate to the folder:
+        ```bash
+        cd frontend/admin-panel
+        ```
+    *   Install dependencies:
+        ```bash
+        npm install
+        ```
+    *   Start the app:
+        ```bash
+        npm run dev
+        ```
+    *   It will run on **http://localhost:5174**.
+
+### 4️⃣ Accessing the System
+
+You can access the applications via the **Nginx API Gateway** (Port 80) or directly (Dev Ports).
+
+*   **Customer Web**: [http://localhost](http://localhost) (Proxies to Port 5173)
+*   **Admin Panel**: [http://localhost/admin](http://localhost/admin) (Proxies to Port 5174)
+
+#### 🛠️ API Documentation (Swagger/OpenAPI)
+Each service exposes API docs. Access them directly:
+*   **User Service**: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
+*   **Product Service**: [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
+*   **Inventory Service**: [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html)
+*   **Order Service**: [http://localhost:8084/swagger-ui.html](http://localhost:8084/swagger-ui.html)
+*   **Payment Service**: [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html)
+
+---
+
+## 🛑 How to Stop
+
+1.  Stop the frontend servers with `Ctrl+C`.
+2.  Stop the backend services with `Ctrl+C` in each terminal.
+3.  Stop the infrastructure:
     ```bash
-    npm run dev
+    cd infra/docker
+    docker-compose down
     ```
 
 ---
 
 ## 📁 Repository Structure
 
-* `backend/`: Java/Spring Boot services
+* `backend/`: Java/Spring Boot services (User, Product, Inventory, Order, Payment)
 * `frontend/`: React applications (Customer, Admin)
 * `infra/`: Infrastructure configuration (Docker, Kafka, Nginx, Terraform)
 * `docs/`: Design and Architecture documentation
