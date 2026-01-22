@@ -1,15 +1,10 @@
 package com.ecommerce.user.controller;
 
-import com.ecommerce.user.dto.AuthResponse;
-import com.ecommerce.user.dto.LoginRequest;
-import com.ecommerce.user.dto.RegisterRequest;
+import com.ecommerce.user.dto.*;
 import com.ecommerce.user.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -29,7 +24,7 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<AuthResponse> refresh(@RequestBody com.ecommerce.user.dto.RefreshTokenRequest request) {
+    public ResponseEntity<AuthResponse> refresh(@RequestBody RefreshTokenRequest request) {
         return ResponseEntity.ok(authService.refreshToken(request));
     }
 }

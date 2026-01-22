@@ -140,11 +140,11 @@ You can access the applications via the **Nginx API Gateway** (Port 80) or direc
 
 #### 🛠️ API Documentation (Swagger/OpenAPI)
 Each service exposes API docs. Access them directly:
-*   **User Service**: [http://localhost:8081/swagger-ui.html](http://localhost:8081/swagger-ui.html)
-*   **Product Service**: [http://localhost:8082/swagger-ui.html](http://localhost:8082/swagger-ui.html)
-*   **Inventory Service**: [http://localhost:8083/swagger-ui.html](http://localhost:8083/swagger-ui.html)
-*   **Order Service**: [http://localhost:8084/swagger-ui.html](http://localhost:8084/swagger-ui.html)
-*   **Payment Service**: [http://localhost:8085/swagger-ui.html](http://localhost:8085/swagger-ui.html)
+*   **User Service**: [http://localhost:8081/swagger-ui/index.html](http://localhost:8081/swagger-ui/index.html)
+*   **Product Service**: [http://localhost:8082/swagger-ui/index.html](http://localhost:8082/swagger-ui/index.html)
+*   **Inventory Service**: [http://localhost:8083/swagger-ui/index.html](http://localhost:8083/swagger-ui/index.html)
+*   **Order Service**: [http://localhost:8084/swagger-ui/index.html](http://localhost:8084/swagger-ui/index.html)
+*   **Payment Service**: [http://localhost:8085/swagger-ui/index.html](http://localhost:8085/swagger-ui/index.html)
 
 ---
 
