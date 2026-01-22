@@ -165,3 +165,19 @@ Each service exposes API docs. Access them directly:
 * `frontend/`: React applications (Customer, Admin)
 * `infra/`: Infrastructure configuration (Docker, Kafka, Nginx, Terraform)
 * `docs/`: Design and Architecture documentation
+
+---
+
+## 💾 Initial Seed Data
+
+The application comes with pre-configured seed data (applied automatically via Flyway migrations on startup).
+
+### Default Users
+*   **Admin**: `admin@example.com` / `password`
+*   **Customer**: `user@example.com` / `password`
+
+### Pre-Seeded Products
+The system initializes with:
+*   **Categories**: Electronics, Books, Clothing
+*   **Products**: Laptops, Smartphones, Books, etc.
+*   **Inventory**: 30-200 units per item.
