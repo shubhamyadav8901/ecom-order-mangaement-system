@@ -1,5 +1,6 @@
 package com.ecommerce.product.service;
 
+import com.ecommerce.common.exception.ResourceNotFoundException;
 import com.ecommerce.product.domain.Category;
 import com.ecommerce.product.dto.CategoryRequest;
 import com.ecommerce.product.dto.CategoryResponse;
@@ -47,7 +48,7 @@ public class CategoryService {
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
         return mapToResponse(category);
     }
 
