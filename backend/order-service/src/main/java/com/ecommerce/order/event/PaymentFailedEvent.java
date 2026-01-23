@@ -1,3 +1,5 @@
 package com.ecommerce.order.event;
 
-public record PaymentFailedEvent(Long orderId, String reason) {}
+import org.springframework.lang.NonNull;
+
+public record PaymentFailedEvent(@NonNull Long orderId, String reason) {}
