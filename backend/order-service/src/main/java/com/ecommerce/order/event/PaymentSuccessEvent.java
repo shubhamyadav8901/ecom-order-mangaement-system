@@ -1,5 +1,3 @@
 package com.ecommerce.order.event;
 
-import org.springframework.lang.NonNull;
-
-public record PaymentSuccessEvent(@NonNull Long orderId, String transactionId) {}
+public record PaymentSuccessEvent(Long orderId, String transactionId) {}

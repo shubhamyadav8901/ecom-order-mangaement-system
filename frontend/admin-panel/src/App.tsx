@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ProductManager } from './components/ProductManager';
 import { OrderDashboard } from './components/OrderDashboard';
+import { Layout } from './components/Layout';
 
 function App() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [token, setToken] = useState(localStorage.getItem('adminToken'));
+  const [token, setToken] = useState<string | null>(localStorage.getItem('adminToken'));
+  const [currentView, setCurrentView] = useState('dashboard');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,52 +22,75 @@ function App() {
         localStorage.setItem('adminToken', data.accessToken);
         setToken(data.accessToken);
       } else {
-        alert('Login Failed');
+        alert('Login Failed: ' + (data.message || 'Unknown error'));
       }
     } catch (error) {
       console.error(error);
+      alert('Login Error');
     }
   };
 
-  return (
-    <div style={{ padding: '20px', backgroundColor: '#f0f0f0', minHeight: '100vh' }}>
-      <h1>Admin Panel</h1>
-      {!token ? (
-        <div style={{ maxWidth: '300px', margin: 'auto', background: 'white', padding: '20px', borderRadius: '8px' }}>
-          <h2>Admin Login</h2>
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    setToken(null);
+  };
+
+  if (!token) {
+    return (
+      <div className="login-container">
+        <div className="login-box">
+          <h2 className="login-title">Admin Login</h2>
+          <form onSubmit={handleLogin}>
             <input
+              className="input"
               type="email"
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ padding: '8px' }}
+              required
             />
             <input
+              className="input"
               type="password"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ padding: '8px' }}
+              required
             />
-            <button type="submit" style={{ padding: '10px' }}>Login</button>
+            <button className="btn" style={{ width: '100%' }} type="submit">Sign In</button>
           </form>
         </div>
-      ) : (
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2>Dashboard</h2>
-            <button onClick={() => {
-              localStorage.removeItem('adminToken');
-              setToken(null);
-            }}>Logout</button>
-          </div>
+      </div>
+    );
+  }
 
-          <ProductManager />
-          <OrderDashboard />
+  return (
+    <Layout currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout}>
+      {currentView === 'dashboard' && (
+        <div className="card">
+          <h3>Welcome to the Admin Dashboard</h3>
+          <p style={{ marginTop: '1rem', color: 'var(--text-muted)' }}>
+            Select an option from the sidebar to manage your store.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginTop: '2rem' }}>
+             <div style={{ padding: '1rem', background: '#e0e7ff', borderRadius: '0.5rem' }}>
+                <h4>Total Sales</h4>
+                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>$12,345</p>
+             </div>
+             <div style={{ padding: '1rem', background: '#dcfce7', borderRadius: '0.5rem' }}>
+                <h4>Active Orders</h4>
+                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>42</p>
+             </div>
+             <div style={{ padding: '1rem', background: '#fee2e2', borderRadius: '0.5rem' }}>
+                <h4>Low Stock Items</h4>
+                <p style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>5</p>
+             </div>
+          </div>
         </div>
       )}
-    </div>
+      {currentView === 'products' && <ProductManager />}
+      {currentView === 'orders' && <OrderDashboard />}
+    </Layout>
   );
 }
 

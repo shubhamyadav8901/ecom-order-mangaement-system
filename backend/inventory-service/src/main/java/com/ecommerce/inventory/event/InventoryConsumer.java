@@ -1,5 +1,6 @@
 package com.ecommerce.inventory.event;
 
+import com.ecommerce.inventory.dto.ReservationRequest;
 import com.ecommerce.inventory.service.InventoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
