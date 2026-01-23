@@ -1,11 +1,15 @@
 package com.ecommerce.user.service;
 
+import com.ecommerce.user.domain.RefreshToken;
 import com.ecommerce.user.domain.User;
 import com.ecommerce.user.dto.AuthResponse;
 import com.ecommerce.user.dto.LoginRequest;
 import com.ecommerce.user.dto.RegisterRequest;
 import com.ecommerce.user.repository.UserRepository;
 import com.ecommerce.common.security.JwtTokenProvider;
+
+import java.util.Objects;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -43,13 +47,14 @@ public class AuthService {
             throw new RuntimeException("Email already in use");
         }
 
-        User user = User.builder()
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .firstName(request.firstName())
-                .lastName(request.lastName())
-                .role("ROLE_CUSTOMER") // Default role
-                .build();
+        User user = Objects.requireNonNull(
+                User.builder()
+                        .email(request.email())
+                        .password(passwordEncoder.encode(request.password()))
+                        .firstName(request.firstName())
+                        .lastName(request.lastName())
+                        .role("ROLE_CUSTOMER") // Default role
+                        .build());
 
         userRepository.save(user);
 
@@ -59,15 +64,14 @@ public class AuthService {
     @Transactional
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
-        );
+                new UsernamePasswordAuthenticationToken(request.email(), request.password()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         User user = userRepository.findByEmail(request.email()).orElseThrow();
         // Assuming role is simple string in DB, usually it's "ROLE_USER"
         String jwt = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
-        com.ecommerce.user.domain.RefreshToken refreshToken = createRefreshToken(user);
+        RefreshToken refreshToken = createRefreshToken(user);
 
         return new AuthResponse(jwt, refreshToken.getToken());
     }
@@ -76,7 +80,7 @@ public class AuthService {
     public AuthResponse refreshToken(com.ecommerce.user.dto.RefreshTokenRequest request) {
         return refreshTokenRepository.findByToken(request.refreshToken())
                 .map(this::verifyExpiration)
-                .map(com.ecommerce.user.domain.RefreshToken::getUser)
+                .map(RefreshToken::getUser)
                 .map(user -> {
                     String token = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
                     return new AuthResponse(token, request.refreshToken());
@@ -84,19 +88,20 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
     }
 
-    private com.ecommerce.user.domain.RefreshToken createRefreshToken(User user) {
+    private RefreshToken createRefreshToken(User user) {
         // Delete existing token if any
         refreshTokenRepository.deleteByUser(user);
 
-        com.ecommerce.user.domain.RefreshToken refreshToken = com.ecommerce.user.domain.RefreshToken.builder()
-                .user(user)
-                .expiryDate(java.time.LocalDateTime.now().plusNanos(refreshExpirationInMs * 1000000))
-                .token(java.util.UUID.randomUUID().toString())
-                .build();
+        RefreshToken refreshToken = Objects.requireNonNull(
+                RefreshToken.builder()
+                        .user(user)
+                        .expiryDate(java.time.LocalDateTime.now().plusNanos(refreshExpirationInMs * 1000000))
+                        .token(java.util.UUID.randomUUID().toString())
+                        .build());
         return refreshTokenRepository.save(refreshToken);
     }
 
-    private com.ecommerce.user.domain.RefreshToken verifyExpiration(com.ecommerce.user.domain.RefreshToken token) {
+    private RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
             throw new RuntimeException("Refresh token was expired. Please make a new signin request");

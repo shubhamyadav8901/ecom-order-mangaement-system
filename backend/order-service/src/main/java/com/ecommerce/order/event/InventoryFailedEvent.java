@@ -1,3 +1,5 @@
 package com.ecommerce.order.event;
 
-public record InventoryFailedEvent(Long orderId, String reason) {}
+import org.springframework.lang.NonNull;
+
+public record InventoryFailedEvent(@NonNull Long orderId, String reason) {}

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -20,13 +21,14 @@ public class PaymentService {
     public PaymentResponse initiatePayment(PaymentRequest request) {
         // Idempotency check could go here
 
-        Payment payment = Payment.builder()
-                .orderId(request.orderId())
-                .amount(request.amount())
-                .paymentMethod(request.paymentMethod())
-                .status("PENDING")
-                .transactionId(UUID.randomUUID().toString()) // Simulate Gateway ID
-                .build();
+        Payment payment = Objects.requireNonNull(
+                Payment.builder()
+                        .orderId(request.orderId())
+                        .amount(request.amount())
+                        .paymentMethod(request.paymentMethod())
+                        .status("PENDING")
+                        .transactionId(UUID.randomUUID().toString()) // Simulate Gateway ID
+                        .build());
 
         Payment savedPayment = paymentRepository.save(payment);
 
@@ -45,7 +47,6 @@ public class PaymentService {
                 payment.getTransactionId(),
                 payment.getAmount(),
                 payment.getStatus(),
-                payment.getCreatedAt()
-        );
+                payment.getCreatedAt());
     }
 }

@@ -31,7 +31,7 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.inventory.event.OrderCreatedEvent
+        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.inventory.event.OrderCreatedEvent,inventoryFailedEvent:com.ecommerce.inventory.event.InventoryFailedEvent
 
 app:
   jwt:

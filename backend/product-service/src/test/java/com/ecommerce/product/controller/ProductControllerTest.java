@@ -16,6 +16,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.Objects;
+
 public class ProductControllerTest {
 
     private MockMvc mockMvc;
@@ -39,7 +41,7 @@ public class ProductControllerTest {
         when(productService.getProductById(1L)).thenThrow(new ResourceNotFoundException("Product not found"));
 
         mockMvc.perform(get("/products/1")
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON)))
                 .andExpect(status().isNotFound());
     }
 
@@ -48,7 +50,7 @@ public class ProductControllerTest {
         when(productService.getAllProducts()).thenThrow(new RuntimeException("Database error"));
 
         mockMvc.perform(get("/products")
-                .contentType(MediaType.APPLICATION_JSON))
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON)))
                 .andExpect(status().isInternalServerError());
     }
 }
