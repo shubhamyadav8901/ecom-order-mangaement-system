@@ -15,6 +15,7 @@ export const ProductManager: React.FC = () => {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [inventory, setInventory] = useState('100');
+  const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -64,6 +65,7 @@ export const ProductManager: React.FC = () => {
 
       alert('Product created & stock added');
       setName(''); setPrice(''); setDescription('');
+      setShowForm(false);
       loadProducts();
     } catch (err) {
       console.error(err);
@@ -72,37 +74,72 @@ export const ProductManager: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '20px', background: 'white', marginTop: '20px', borderRadius: '8px' }}>
-      <h3>Product Management</h3>
+    <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <h3>Product Management</h3>
+        <button className="btn" onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Cancel' : 'Add New Product'}
+        </button>
+      </div>
 
-      <form onSubmit={handleCreate} style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-        <input placeholder="Name" value={name} onChange={e => setName(e.target.value)} required />
-        <input placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
-        <input placeholder="Price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-        <input placeholder="Initial Stock" type="number" value={inventory} onChange={e => setInventory(e.target.value)} required />
-        <button type="submit">Create Product</button>
-      </form>
+      {showForm && (
+        <div className="card">
+          <h4 style={{ marginBottom: '1rem' }}>Create Product</h4>
+          <form onSubmit={handleCreate}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Name</label>
+                <input className="input" placeholder="Product Name" value={name} onChange={e => setName(e.target.value)} required />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Price</label>
+                <input className="input" placeholder="Price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
+              </div>
+              <div style={{ gridColumn: 'span 2' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Description</label>
+                <input className="input" placeholder="Description" value={description} onChange={e => setDescription(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem' }}>Initial Stock</label>
+                <input className="input" placeholder="Quantity" type="number" value={inventory} onChange={e => setInventory(e.target.value)} required />
+              </div>
+            </div>
+            <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn" type="submit">Save Product</button>
+            </div>
+          </form>
+        </div>
+      )}
 
-      <table border={1} cellPadding={8} style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map(p => (
-            <tr key={p.id}>
-              <td>{p.id}</td>
-              <td>{p.name}</td>
-              <td>${p.price}</td>
-              <td>{p.description}</td>
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Name</th>
+              <th>Price</th>
+              <th>Description</th>
+              <th>Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {products.map(p => (
+              <tr key={p.id}>
+                <td>{p.id}</td>
+                <td>{p.name}</td>
+                <td>${p.price.toFixed(2)}</td>
+                <td>{p.description}</td>
+                <td><span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', backgroundColor: '#d1fae5', color: '#065f46' }}>Active</span></td>
+              </tr>
+            ))}
+            {products.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No products found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

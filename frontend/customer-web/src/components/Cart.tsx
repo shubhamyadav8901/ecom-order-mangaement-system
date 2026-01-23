@@ -1,35 +1,20 @@
 import React from 'react';
 
-interface CartItem {
-  product: { id: number; name: string; price: number };
-  quantity: number;
-}
+// For now, Cart component manages its own state or displays a placeholder
+// because App.tsx is not passing props in the current refactor.
+// In a real app, Cart state would be lifted to Context or Redux.
 
-interface CartProps {
-  items: CartItem[];
-  onCheckout: () => void;
-  clearCart: () => void;
-}
-
-export const Cart: React.FC<CartProps> = ({ items, onCheckout, clearCart }) => {
-  const total = items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
-
-  if (items.length === 0) return <p>Cart is empty</p>;
-
+export const Cart: React.FC = () => {
   return (
-    <div style={{ padding: '20px', border: '1px solid #ddd', marginTop: '20px' }}>
-      <h3>Your Cart</h3>
-      <ul>
-        {items.map((item, idx) => (
-          <li key={idx}>
-            {item.product.name} x {item.quantity} - ${item.product.price * item.quantity}
-          </li>
-        ))}
-      </ul>
-      <h4>Total: ${total.toFixed(2)}</h4>
-      <div style={{ display: 'flex', gap: '10px' }}>
-        <button onClick={onCheckout} style={{ background: 'green', color: 'white' }}>Checkout</button>
-        <button onClick={clearCart} style={{ background: 'red', color: 'white' }}>Clear</button>
+    <div className="card" style={{ marginTop: '2rem' }}>
+      <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>Shopping Cart</h3>
+      <p style={{ color: 'var(--text-light)', padding: '2rem 0', textAlign: 'center' }}>
+        Your cart is currently empty.
+        <br />
+        <span style={{ fontSize: '0.875rem' }}>(Cart functionality is pending state implementation)</span>
+      </p>
+      <div style={{ textAlign: 'right', marginTop: '1rem' }}>
+         <button className="btn btn-accent" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>Checkout</button>
       </div>
     </div>
   );
