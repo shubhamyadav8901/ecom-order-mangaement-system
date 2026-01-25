@@ -123,6 +123,8 @@ OrderItem(id, orderId, productId, quantity, price)
 #### APIs
 ```
 POST /orders
+GET  /orders (Admin Dashboard)
+GET  /orders/my-orders (Customer History)
 GET  /orders/{id}
 GET  /orders/user/{userId}
 POST /orders/{id}/cancel
@@ -208,23 +210,30 @@ POST /payments/refund
 
 ---
 
-## 🎨 Frontend Requirements
+## 🎨 Frontend Architecture
 
-### Customer Web App
-* Browse products
-* Cart
-* Checkout
-* Order history
+The system features two distinct React applications built with **Vite** and **TypeScript**.
 
-### Admin Panel
-* Product management
-* Inventory monitoring
-* Order dashboard
+### 1. Customer Web App (`frontend/customer-web`)
+*   **Port**: 5173
+*   **Features**:
+    *   **Product Catalog**: Browse and view products.
+    *   **Shopping Cart**: Manage cart state locally, checkout.
+    *   **Order History**: View past orders (`/my-orders`).
+    *   **Authentication**: Login/Register as Customer.
 
-### Frontend Stack
-* React
-* REST API integration
-* JWT auth handling
+### 2. Admin Panel (`frontend/admin-panel`)
+*   **Port**: 5174
+*   **Features**:
+    *   **Dashboard**: Overview of sales/orders.
+    *   **Product Management**: Create and Delete products.
+    *   **Order Dashboard**: View all system orders (`/orders`).
+    *   **Authentication**: Login as Admin.
+
+### Integration
+*   Both frontends consume the backend APIs via the **Nginx Gateway** (`http://localhost:80/api`).
+*   **State Management**: React `useState` / Context.
+*   **Auth**: JWT stored in `localStorage`, attached to requests via `fetchWithAuth` utility.
 
 ---
 
