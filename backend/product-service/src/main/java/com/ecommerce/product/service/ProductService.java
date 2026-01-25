@@ -10,10 +10,12 @@ import com.ecommerce.product.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,19 +32,22 @@ public class ProductService {
     @Transactional
     public ProductResponse createProduct(ProductRequest request) {
         Category category = null;
-        if (request.categoryId() != null) {
-            category = categoryRepository.findById(request.categoryId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
+        Long catergoryId = request.categoryId();
+        if (catergoryId != null) {
+            category = categoryRepository.findById(catergoryId)
+                    .orElseThrow(
+                            () -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
         }
 
-        Product product = Product.builder()
-                .name(request.name())
-                .description(request.description())
-                .price(request.price())
-                .sellerId(request.sellerId())
-                .status(request.status() != null ? request.status() : "ACTIVE")
-                .category(category)
-                .build();
+        Product product = Objects.requireNonNull(
+                Product.builder()
+                        .name(request.name())
+                        .description(request.description())
+                        .price(request.price())
+                        .sellerId(request.sellerId())
+                        .status(request.status() != null ? request.status() : "ACTIVE")
+                        .category(category)
+                        .build());
 
         Product savedProduct = productRepository.save(product);
         logger.info("Product created with id: {}", savedProduct.getId());
@@ -58,14 +63,14 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public ProductResponse getProductById(Long id) {
+    public ProductResponse getProductById(@NonNull Long id) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return mapToResponse(product);
     }
 
     @Transactional
-    public void deleteProduct(Long id) {
+    public void deleteProduct(@NonNull Long id) {
         productRepository.deleteById(id);
     }
 
@@ -79,7 +84,6 @@ public class ProductService {
                 product.getCategory() != null ? product.getCategory().getName() : null,
                 product.getSellerId(),
                 product.getStatus(),
-                product.getCreatedAt()
-        );
+                product.getCreatedAt());
     }
 }
