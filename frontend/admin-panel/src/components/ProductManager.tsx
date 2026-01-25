@@ -73,6 +73,21 @@ export const ProductManager: React.FC = () => {
     }
   };
 
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      const res = await fetchWithAuth(`/api/products/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setProducts(products.filter(p => p.id !== id));
+      } else {
+        alert('Failed to delete product');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting product');
+    }
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
@@ -120,6 +135,7 @@ export const ProductManager: React.FC = () => {
               <th>Price</th>
               <th>Description</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -130,11 +146,26 @@ export const ProductManager: React.FC = () => {
                 <td>${p.price.toFixed(2)}</td>
                 <td>{p.description}</td>
                 <td><span style={{ padding: '0.25rem 0.5rem', borderRadius: '9999px', fontSize: '0.75rem', backgroundColor: '#d1fae5', color: '#065f46' }}>Active</span></td>
+                <td>
+                  <button
+                    onClick={() => handleDelete(p.id)}
+                    style={{
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: '#fee2e2',
+                      color: '#b91c1c',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
               </tr>
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No products found.</td>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No products found.</td>
               </tr>
             )}
           </tbody>
