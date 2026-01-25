@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { StoreLayout } from './layouts/StoreLayout';
+import { HomePage } from './pages/HomePage';
+import { CartPage } from './pages/CartPage';
+import { OrderPage } from './pages/OrderPage';
 import { fetchWithAuth } from './api';
-import { ProductCatalog } from './components/ProductCatalog';
-import { Cart } from './components/Cart';
-import { OrderHistory } from './components/OrderHistory';
+import { Input } from '@shared/ui/Input';
+import { Button } from '@shared/ui/Button';
 
 interface CartItem {
   product: any;
@@ -11,8 +14,10 @@ interface CartItem {
 
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [view, setView] = useState('catalog'); // catalog, cart, orders
+  const [view, setView] = useState('catalog');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   const addToCart = (product: any) => {
     setCartItems(prev => {
@@ -60,10 +65,6 @@ function App() {
     }
   };
 
-  // Simple auth placeholder
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -90,87 +91,36 @@ function App() {
     setView('catalog');
   };
 
+  if (!token) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f3f4f6' }}>
+        <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>Welcome Back</h2>
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+            <Input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
+            <Button type="submit" style={{ width: '100%' }}>Sign In</Button>
+          </form>
+          <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
+             Use test@example.com / password
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {/* Navbar */}
-      <nav className="navbar">
-        <div className="container navbar-content">
-          <a href="#" className="brand" onClick={() => setView('catalog')}>StoreFront</a>
-          <div className="nav-links">
-            <span
-              className={`nav-link ${view === 'catalog' ? 'active' : ''}`}
-              onClick={() => setView('catalog')}
-            >
-              Shop
-            </span>
-            {token && (
-              <>
-                <span
-                  className={`nav-link ${view === 'cart' ? 'active' : ''}`}
-                  onClick={() => setView('cart')}
-                >
-                  Cart <span className="cart-count">{cartItems.reduce((acc, item) => acc + item.quantity, 0)}</span>
-                </span>
-                <span
-                  className={`nav-link ${view === 'orders' ? 'active' : ''}`}
-                  onClick={() => setView('orders')}
-                >
-                  Orders
-                </span>
-                <span className="nav-link" onClick={handleLogout}>Logout</span>
-              </>
-            )}
-            {!token && (
-              <span className="nav-link" onClick={() => alert('Please login below')}>Login</span>
-            )}
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="container" style={{ flex: 1, paddingBottom: '3rem' }}>
-        {!token ? (
-          <div style={{ maxWidth: '400px', margin: '4rem auto', padding: '2rem', background: 'white', borderRadius: '1rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}>
-            <h2 style={{ textAlign: 'center', marginBottom: '1.5rem' }}>Welcome Back</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <input
-                style={{ padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required
-              />
-              <input
-                style={{ padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}
-                type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required
-              />
-              <button className="btn" type="submit">Sign In</button>
-            </form>
-            <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: '#64748b' }}>
-              Use <code style={{background: '#f1f5f9', padding: '2px 4px'}}>test@example.com</code> / <code style={{background: '#f1f5f9', padding: '2px 4px'}}>password</code>
-            </p>
-          </div>
-        ) : (
-          <>
-            {view === 'catalog' && (
-              <>
-                <div style={{ textAlign: 'center', padding: '3rem 0', background: '#e0e7ff', borderRadius: '1rem', marginTop: '2rem', marginBottom: '2rem' }}>
-                   <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: '#1e1b4b', marginBottom: '1rem' }}>Summer Collection 2026</h1>
-                   <p style={{ fontSize: '1.25rem', color: '#4338ca' }}>Discover the best deals on premium items.</p>
-                </div>
-                <ProductCatalog onAddToCart={addToCart} />
-              </>
-            )}
-            {view === 'cart' && <Cart items={cartItems} onRemove={removeFromCart} onClear={clearCart} onCheckout={handleCheckout} />}
-            {view === 'orders' && <OrderHistory />}
-          </>
-        )}
-      </main>
-
-      {/* Footer */}
-      <footer style={{ background: '#1e293b', color: 'white', padding: '2rem 0', marginTop: 'auto' }}>
-        <div className="container" style={{ textAlign: 'center', fontSize: '0.875rem', color: '#94a3b8' }}>
-          &copy; 2026 StoreFront Inc. All rights reserved.
-        </div>
-      </footer>
-    </div>
+    <StoreLayout
+      currentView={view}
+      onNavigate={setView}
+      cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
+      isLoggedIn={!!token}
+      onLogout={handleLogout}
+    >
+      {view === 'catalog' && <HomePage onAddToCart={addToCart} />}
+      {view === 'cart' && <CartPage items={cartItems} onRemove={removeFromCart} onClear={clearCart} onCheckout={handleCheckout} />}
+      {view === 'orders' && <OrderPage />}
+    </StoreLayout>
   );
 }
 
