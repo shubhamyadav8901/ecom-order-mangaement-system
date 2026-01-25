@@ -1,0 +1,126 @@
+/* frontend/shared/ui/styles.css */
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --success: #10b981;
+  --bg-surface: #ffffff;
+  --border: #e5e7eb;
+  --radius: 0.5rem;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.shared-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 500;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  cursor: pointer;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+.shared-btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+.shared-btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+.shared-btn-secondary {
+  background-color: white;
+  border-color: var(--border);
+  color: #374151;
+}
+.shared-btn-secondary:hover {
+  background-color: #f9fafb;
+}
+.shared-btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+.shared-btn-danger:hover {
+  background-color: var(--danger-hover);
+}
+.shared-btn-ghost {
+  background-color: transparent;
+  color: #6b7280;
+}
+.shared-btn-ghost:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+.shared-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.shared-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transition: border-color 0.2s;
+  font-size: 0.875rem;
+}
+.shared-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+
+.shared-card {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+
+.shared-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+.shared-badge-success { background: #dcfce7; color: #166534; }
+.shared-badge-warning { background: #fef9c3; color: #854d0e; }
+.shared-badge-danger { background: #fee2e2; color: #991b1b; }
+.shared-badge-info { background: #dbeafe; color: #1e40af; }
+.shared-badge-neutral { background: #f3f4f6; color: #374151; }
+
+.shared-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  backdrop-filter: blur(2px);
+}
+.shared-modal-content {
+  background: white;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.shared-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid #e5e7eb;
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
