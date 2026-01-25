@@ -1,18 +1,5 @@
 import React, { useEffect, useState } from 'react';
-
-const getHeaders = () => {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': token ? `Bearer ${token}` : '',
-  };
-};
-
-const fetchApi = async (url: string) => {
-  const headers = getHeaders();
-  const response = await fetch(url, { headers });
-  return response;
-};
+import { fetchWithAuth } from '../api';
 
 export const OrderHistory: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -41,7 +28,7 @@ export const OrderHistory: React.FC = () => {
             }).join(''));
             const payload = JSON.parse(jsonPayload);
             if(payload.userId) {
-                fetchApi(`/api/orders/user/${payload.userId}`)
+                fetchWithAuth(`/api/orders/user/${payload.userId}`)
                     .then(res => res.json())
                     .then(data => setOrders(data));
             }
