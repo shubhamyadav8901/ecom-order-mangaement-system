@@ -1,5 +1,7 @@
 package com.ecommerce.inventory.service;
 
+import com.ecommerce.common.exception.InsufficientStockException;
+import com.ecommerce.common.exception.InventoryNotFoundException;
 import com.ecommerce.inventory.domain.Inventory;
 import com.ecommerce.inventory.domain.InventoryReservation;
 import com.ecommerce.inventory.dto.ReservationRequest;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Service
 public class InventoryService {
@@ -38,23 +41,27 @@ public class InventoryService {
     public void reserveStock(ReservationRequest request) {
         // Pessimistic Lock to prevent overselling
         Inventory inventory = inventoryRepository.findByProductIdLocked(request.productId())
-                .orElseThrow(() -> new RuntimeException("Product not found in inventory"));
+                .orElseThrow(() -> new InventoryNotFoundException(request.productId()));
 
         if (inventory.getAvailableStock() < request.quantity()) {
-            throw new RuntimeException("Insufficient stock");
+            throw new InsufficientStockException(
+                    request.productId(),
+                    request.quantity(),
+                    inventory.getAvailableStock());
         }
 
         inventory.setAvailableStock(inventory.getAvailableStock() - request.quantity());
         inventory.setReservedStock(inventory.getReservedStock() + request.quantity());
         inventoryRepository.save(inventory);
 
-        InventoryReservation reservation = InventoryReservation.builder()
-                .orderId(request.orderId())
-                .productId(request.productId())
-                .quantity(request.quantity())
-                .expiresAt(LocalDateTime.now().plusMinutes(15)) // 15 min reservation
-                .status("RESERVED")
-                .build();
+        InventoryReservation reservation = Objects.requireNonNull(
+                InventoryReservation.builder()
+                        .orderId(request.orderId())
+                        .productId(request.productId())
+                        .quantity(request.quantity())
+                        .expiresAt(LocalDateTime.now().plusMinutes(15)) // 15 min reservation
+                        .status("RESERVED")
+                        .build());
 
         reservationRepository.save(reservation);
     }
@@ -74,10 +81,10 @@ public class InventoryService {
                 Inventory inventory = inventoryRepository.findByProductIdLocked(reservation.getProductId())
                         .orElseThrow();
                 inventory.setReservedStock(inventory.getReservedStock() - reservation.getQuantity());
-                 // Technically stock is gone now, or we keep tracking 'Sold' stock if needed.
-                 // Reducing reservedStock implies it leaves the warehouse view we care about.
-                 // But wait, if we reduce reservedStock, the stock vanishes from DB counts.
-                 // That is correct for "shipped/sold" items.
+                // Technically stock is gone now, or we keep tracking 'Sold' stock if needed.
+                // Reducing reservedStock implies it leaves the warehouse view we care about.
+                // But wait, if we reduce reservedStock, the stock vanishes from DB counts.
+                // That is correct for "shipped/sold" items.
                 inventoryRepository.save(inventory);
             }
         });
