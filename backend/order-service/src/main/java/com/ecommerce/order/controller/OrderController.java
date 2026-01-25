@@ -37,6 +37,17 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getOrderById(id));
     }
 
+    @GetMapping
+    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
+    }
+
+    @GetMapping("/my-orders")
+    public ResponseEntity<List<OrderResponse>> getMyOrders(Authentication authentication) {
+        Long userId = getUserIdFromAuthentication(authentication);
+        return ResponseEntity.ok(orderService.getUserOrders(userId));
+    }
+
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<OrderResponse>> getUserOrders(@PathVariable Long userId) {
         return ResponseEntity.ok(orderService.getUserOrders(userId));

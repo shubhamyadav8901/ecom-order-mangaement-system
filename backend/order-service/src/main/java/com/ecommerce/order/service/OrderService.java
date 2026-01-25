@@ -80,6 +80,13 @@ public class OrderService {
         }
 
         @Transactional(readOnly = true)
+        public List<OrderResponse> getAllOrders() {
+                return orderRepository.findAll().stream()
+                                .map(this::mapToResponse)
+                                .collect(Collectors.toList());
+        }
+
+        @Transactional(readOnly = true)
         public List<OrderResponse> getUserOrders(Long userId) {
                 return orderRepository.findByUserId(userId).stream()
                                 .map(this::mapToResponse)

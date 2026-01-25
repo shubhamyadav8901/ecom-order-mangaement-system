@@ -9,7 +9,7 @@ interface Product {
 }
 
 interface Props {
-  onAddToCart: () => void;
+  onAddToCart: (product: Product) => void;
 }
 
 export const ProductCatalog: React.FC<Props> = ({ onAddToCart }) => {
@@ -21,12 +21,6 @@ export const ProductCatalog: React.FC<Props> = ({ onAddToCart }) => {
       .then(data => setProducts(data))
       .catch(err => console.error(err));
   }, []);
-
-  const addToCart = (product: Product) => {
-    // In a real app, we'd add to context/backend
-    console.log('Added', product);
-    onAddToCart();
-  };
 
   return (
     <div>
@@ -47,7 +41,7 @@ export const ProductCatalog: React.FC<Props> = ({ onAddToCart }) => {
               <p className="product-desc">{p.description}</p>
               <div className="product-footer">
                 <span className="product-price">${p.price.toFixed(2)}</span>
-                <button className="btn btn-accent" onClick={() => addToCart(p)}>Add to Cart</button>
+                <button className="btn btn-accent" onClick={() => onAddToCart(p)}>Add to Cart</button>
               </div>
             </div>
           </div>

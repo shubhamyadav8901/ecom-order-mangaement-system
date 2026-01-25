@@ -1,12 +1,64 @@
 import React, { useState } from 'react';
+import { fetchWithAuth } from './api';
 import { ProductCatalog } from './components/ProductCatalog';
 import { Cart } from './components/Cart';
 import { OrderHistory } from './components/OrderHistory';
 
+interface CartItem {
+  product: any;
+  quantity: number;
+}
+
 function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
   const [view, setView] = useState('catalog'); // catalog, cart, orders
-  const [cartCount, setCartCount] = useState(0);
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
+
+  const addToCart = (product: any) => {
+    setCartItems(prev => {
+      const existing = prev.find(item => item.product.id === product.id);
+      if (existing) {
+        return prev.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const removeFromCart = (productId: number) => {
+    setCartItems(prev => prev.filter(item => item.product.id !== productId));
+  };
+
+  const clearCart = () => setCartItems([]);
+
+  const handleCheckout = async () => {
+    try {
+      const items = cartItems.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity,
+        price: item.product.price
+      }));
+
+      const res = await fetchWithAuth('/api/orders', {
+        method: 'POST',
+        body: JSON.stringify({ items })
+      });
+
+      if (res.ok) {
+        alert('Order placed successfully!');
+        setCartItems([]);
+        setView('orders');
+      } else {
+        alert('Checkout failed');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error during checkout');
+    }
+  };
 
   // Simple auth placeholder
   const [email, setEmail] = useState('');
@@ -57,7 +109,7 @@ function App() {
                   className={`nav-link ${view === 'cart' ? 'active' : ''}`}
                   onClick={() => setView('cart')}
                 >
-                  Cart <span className="cart-count">{cartCount}</span>
+                  Cart <span className="cart-count">{cartItems.reduce((acc, item) => acc + item.quantity, 0)}</span>
                 </span>
                 <span
                   className={`nav-link ${view === 'orders' ? 'active' : ''}`}
@@ -103,10 +155,10 @@ function App() {
                    <h1 style={{ fontSize: '2.5rem', fontWeight: '800', color: '#1e1b4b', marginBottom: '1rem' }}>Summer Collection 2026</h1>
                    <p style={{ fontSize: '1.25rem', color: '#4338ca' }}>Discover the best deals on premium items.</p>
                 </div>
-                <ProductCatalog onAddToCart={() => setCartCount(c => c + 1)} />
+                <ProductCatalog onAddToCart={addToCart} />
               </>
             )}
-            {view === 'cart' && <Cart />}
+            {view === 'cart' && <Cart items={cartItems} onRemove={removeFromCart} onClear={clearCart} onCheckout={handleCheckout} />}
             {view === 'orders' && <OrderHistory />}
           </>
         )}
