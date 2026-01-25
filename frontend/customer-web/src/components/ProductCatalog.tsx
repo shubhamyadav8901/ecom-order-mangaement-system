@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { fetchWithAuth } from '../api';
 
 interface Product {
   id: number;
@@ -15,7 +16,7 @@ export const ProductCatalog: React.FC<Props> = ({ onAddToCart }) => {
   const [products, setProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    fetch('/api/products')
+    fetchWithAuth('/api/products')
       .then(res => res.json())
       .then(data => setProducts(data))
       .catch(err => console.error(err));
