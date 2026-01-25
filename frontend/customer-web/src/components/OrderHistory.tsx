@@ -1,50 +1,66 @@
 import React, { useEffect, useState } from 'react';
 import { fetchWithAuth } from '../api';
 
+interface Order {
+  id: number;
+  status: string;
+  totalAmount: number;
+  createdAt: string;
+}
+
 export const OrderHistory: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    // Ideally extract userId from token or use /orders/me endpoint if it existed.
-    // For now, we fetch manually assuming we know ID or use a placeholder endpoint.
-    // Backend implemented /orders/user/{id}.
-    // But we don't have ID easily unless we parse token.
-    // Let's assume user ID 1 for demo or parsing if possible.
-    // Actually, I refactored backend to extract ID from token in `OrderController`.
-    // But `GET /orders/user/{id}` still requires ID in path.
-    // I should have made `GET /orders/me` in Phase 4.
-    // I will try to fetch `/orders/user/1` as a demo assumption or skip if hard.
-    // Better: Implementation of `GET /orders/user/1` requires knowing ID is 1.
-    // I'll skip fetching history for now or just mock it to show UI structure.
-
-    // Actually, let's try to parse the JWT to get ID.
-    const token = localStorage.getItem('token');
-    if(token) {
-        try {
-            const base64Url = token.split('.')[1];
-            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-            const jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
-                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-            }).join(''));
-            const payload = JSON.parse(jsonPayload);
-            if(payload.userId) {
-                fetchWithAuth(`/api/orders/user/${payload.userId}`)
-                    .then(res => res.json())
-                    .then(data => setOrders(data));
-            }
-        } catch(e) { console.error(e); }
-    }
+    fetchWithAuth('/api/orders/my-orders')
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch orders');
+      })
+      .then(data => setOrders(data))
+      .catch(err => console.error(err));
   }, []);
 
   return (
     <div style={{ marginTop: '20px' }}>
-      <h3>My Orders</h3>
-      {orders.length === 0 ? <p>No orders found.</p> : (
-        <ul>
-          {orders.map(o => (
-            <li key={o.id}>Order #{o.id} - {o.status} - ${o.totalAmount}</li>
-          ))}
-        </ul>
+      <h2 className="section-title">My Orders</h2>
+      {orders.length === 0 ? (
+         <div className="card" style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-light)' }}>
+           No orders found.
+         </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Order ID</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(o => (
+                <tr key={o.id}>
+                  <td>#{o.id}</td>
+                  <td>{new Date(o.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    <span style={{
+                      padding: '0.25rem 0.5rem',
+                      borderRadius: '9999px',
+                      fontSize: '0.75rem',
+                      backgroundColor: '#eff6ff',
+                      color: '#1d4ed8'
+                    }}>
+                      {o.status}
+                    </span>
+                  </td>
+                  <td>${o.totalAmount.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );
