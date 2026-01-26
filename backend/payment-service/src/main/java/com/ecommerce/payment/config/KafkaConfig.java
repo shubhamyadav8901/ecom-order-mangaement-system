@@ -1,4 +1,4 @@
-package com.ecommerce.inventory.config;
+package com.ecommerce.payment.config;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
