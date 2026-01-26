@@ -1,0 +1,32 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-milliseconds: ${JWT_EXPIRATION:3600000}
+    refresh-expiration-milliseconds: ${JWT_REFRESH_EXPIRATION:86400000}
+
+logging:
+  level:
+    root: INFO
