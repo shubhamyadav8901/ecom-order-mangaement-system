@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@shared/ui/Card';
 import { Button } from '@shared/ui/Button';
-import { fetchWithAuth } from '../api';
+import { api } from '../api';
 import { ShoppingBag } from 'lucide-react';
 
 interface Product {
@@ -9,6 +9,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  stock?: number;
 }
 
 interface HomePageProps {
@@ -21,11 +22,36 @@ export const HomePage: React.FC<HomePageProps> = ({ onAddToCart }) => {
 
   useEffect(() => {
     setLoading(true);
-    fetchWithAuth('/api/products')
-      .then(res => res.json())
-      .then(data => setProducts(data))
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+        try {
+            const res = await api.get('/products');
+            const productList: Product[] = res.data;
+
+            // Fetch inventory
+            const ids = productList.map(p => p.id);
+            if (ids.length > 0) {
+                try {
+                    const invRes = await api.post('/inventory/batch', ids);
+                    const stockMap = invRes.data;
+                    const merged = productList.map(p => ({
+                        ...p,
+                        stock: stockMap[p.id] || 0
+                    }));
+                    setProducts(merged);
+                } catch (invErr) {
+                    console.error("Inventory fetch failed", invErr);
+                    setProducts(productList);
+                }
+            } else {
+                setProducts([]);
+            }
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
+    };
+    fetchData();
   }, []);
 
   return (
@@ -62,9 +88,18 @@ export const HomePage: React.FC<HomePageProps> = ({ onAddToCart }) => {
               <div style={{ padding: '1.5rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.5rem' }}>{p.name}</h3>
                 <p style={{ color: '#6b7280', fontSize: '0.875rem', marginBottom: '1rem', flex: 1 }}>{p.description}</p>
+                <div style={{ marginBottom: '0.5rem' }}>
+                    {(p.stock === undefined || p.stock === 0) ? (
+                        <span style={{ color: '#ef4444', fontWeight: 600, fontSize: '0.875rem' }}>Out of Stock</span>
+                    ) : (
+                        <span style={{ color: '#059669', fontSize: '0.875rem' }}>{p.stock} in stock</span>
+                    )}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
                   <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#111827' }}>${p.price.toFixed(2)}</span>
-                  <Button onClick={() => onAddToCart(p)} icon={<ShoppingBag size={16} />}>Add</Button>
+                  <Button onClick={() => onAddToCart(p)} disabled={!p.stock || p.stock === 0} icon={<ShoppingBag size={16} />}>
+                    {(!p.stock || p.stock === 0) ? 'Sold Out' : 'Add'}
+                  </Button>
                 </div>
               </div>
             </Card>

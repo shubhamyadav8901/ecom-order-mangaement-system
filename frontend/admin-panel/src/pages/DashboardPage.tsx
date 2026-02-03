@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card } from '@shared/ui/Card';
 import { Badge } from '@shared/ui/Badge';
-import { fetchWithAuth } from '../api';
+import { api } from '../api';
 import { DollarSign, ShoppingBag, AlertTriangle } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -16,20 +16,21 @@ export const DashboardPage: React.FC = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await fetchWithAuth('/api/orders');
-      if (res.ok) setOrders(await res.json());
+      const res = await api.get('/orders');
+      setOrders(res.data);
     } catch(e) { console.error(e); }
   };
 
   const fetchProducts = async () => {
     try {
-      const res = await fetchWithAuth('/api/products');
-      if (res.ok) setProducts(await res.json());
+      const res = await api.get('/products');
+      setProducts(res.data);
     } catch(e) { console.error(e); }
   };
 
   const totalSales = orders.reduce((acc, o) => acc + o.totalAmount, 0);
   const activeOrders = orders.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length;
+  // This would need real inventory check to be accurate, but using 0 as placeholder or calculating from products
   const lowStock = 0;
 
   return (
@@ -45,19 +46,19 @@ export const DashboardPage: React.FC = () => {
         <table className="table">
           <thead>
             <tr>
-               <th>Order ID</th>
-               <th>Date</th>
-               <th>Status</th>
-               <th>Total</th>
+               <th style={{ textAlign: 'left', padding: '1rem' }}>Order ID</th>
+               <th style={{ textAlign: 'left', padding: '1rem' }}>Date</th>
+               <th style={{ textAlign: 'left', padding: '1rem' }}>Status</th>
+               <th style={{ textAlign: 'left', padding: '1rem' }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {orders.slice(0, 5).map(o => (
-              <tr key={o.id}>
-                <td>#{o.id}</td>
-                <td>{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'}</td>
-                <td><Badge variant={o.status === 'PAID' ? 'success' : o.status === 'CANCELLED' ? 'danger' : 'info'}>{o.status}</Badge></td>
-                <td>${o.totalAmount.toFixed(2)}</td>
+              <tr key={o.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '1rem' }}>#{o.id}</td>
+                <td style={{ padding: '1rem' }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'}</td>
+                <td style={{ padding: '1rem' }}><Badge variant={o.status === 'PAID' ? 'success' : o.status === 'CANCELLED' ? 'danger' : 'info'}>{o.status}</Badge></td>
+                <td style={{ padding: '1rem' }}>${o.totalAmount.toFixed(2)}</td>
               </tr>
             ))}
             {orders.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem' }}>No orders yet.</td></tr>}

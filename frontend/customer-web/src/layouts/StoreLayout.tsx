@@ -38,6 +38,7 @@ export const StoreLayout: React.FC<StoreLayoutProps> = ({
                 <div
                   style={{ cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
                   onClick={() => onNavigate('cart')}
+                  aria-label="Cart"
                 >
                   <ShoppingCart size={24} />
                   {cartCount > 0 && (

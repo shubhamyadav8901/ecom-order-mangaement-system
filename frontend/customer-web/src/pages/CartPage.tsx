@@ -11,11 +11,12 @@ interface CartItem {
 interface CartPageProps {
   items: CartItem[];
   onRemove: (id: number) => void;
+  onUpdateQuantity: (id: number, qty: number) => void;
   onClear: () => void;
   onCheckout: () => void;
 }
 
-export const CartPage: React.FC<CartPageProps> = ({ items, onRemove, onClear, onCheckout }) => {
+export const CartPage: React.FC<CartPageProps> = ({ items, onRemove, onUpdateQuantity, onClear, onCheckout }) => {
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   if (items.length === 0) {
@@ -40,8 +41,23 @@ export const CartPage: React.FC<CartPageProps> = ({ items, onRemove, onClear, on
                  <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>${item.product.price.toFixed(2)}</p>
                </div>
                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <span style={{ fontWeight: 500 }}>Qty: {item.quantity}</span>
-                  <button onClick={() => onRemove(item.product.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                        style={{ padding: '0.25rem 0.5rem', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', background: 'white' }}
+                      >-</button>
+                      <span style={{ fontWeight: 500, minWidth: '1.5rem', textAlign: 'center' }}>{item.quantity}</span>
+                      <button
+                        onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                        disabled={item.quantity >= (item.product.stock || 999)}
+                        style={{ padding: '0.25rem 0.5rem', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', background: 'white' }}
+                      >+</button>
+                  </div>
+                  {item.product.stock !== undefined && item.quantity >= item.product.stock && (
+                     <span style={{ fontSize: '0.75rem', color: '#ef4444' }}>Max</span>
+                  )}
+                  <button onClick={() => onRemove(item.product.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', marginLeft: '1rem' }}>
                     <Trash2 size={20} />
                   </button>
                </div>

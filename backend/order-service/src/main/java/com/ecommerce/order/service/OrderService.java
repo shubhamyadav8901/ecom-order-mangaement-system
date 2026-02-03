@@ -29,6 +29,7 @@ public class OrderService {
         private KafkaTemplate<String, Object> kafkaTemplate;
 
         private static final String TOPIC_ORDER_CREATED = "order-created";
+        private static final String TOPIC_ORDER_CANCELLED = "order-cancelled";
 
         @Transactional
         public OrderResponse createOrder(Long userId, OrderRequest request) {
@@ -99,6 +100,27 @@ public class OrderService {
                                 .orElseThrow(() -> new RuntimeException("Order not found"));
                 order.setStatus(status);
                 orderRepository.save(order);
+        }
+
+        @Transactional
+        public void cancelOrder(Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                        .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+                if ("CANCELLED".equals(order.getStatus())) {
+                        throw new RuntimeException("Order is already cancelled");
+                }
+
+                if ("DELIVERED".equals(order.getStatus())) {
+                     throw new RuntimeException("Cannot cancel delivered order");
+                }
+
+                order.setStatus("CANCELLED");
+                orderRepository.save(order);
+
+                // Publish Event to release stock
+                com.ecommerce.order.event.OrderCancelledEvent event = new com.ecommerce.order.event.OrderCancelledEvent(orderId);
+                kafkaTemplate.send(TOPIC_ORDER_CANCELLED, String.valueOf(orderId), event);
         }
 
         private OrderResponse mapToResponse(Order order) {

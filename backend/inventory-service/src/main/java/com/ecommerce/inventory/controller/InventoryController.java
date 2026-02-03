@@ -37,4 +37,9 @@ public class InventoryController {
         inventoryService.releaseReservation(orderId);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/batch")
+    public ResponseEntity<java.util.Map<Long, Integer>> getBatchStock(@RequestBody java.util.List<Long> productIds) {
+        return ResponseEntity.ok(inventoryService.getBatchStock(productIds));
+    }
 }
