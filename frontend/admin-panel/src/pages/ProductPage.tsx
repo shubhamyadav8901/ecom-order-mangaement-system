@@ -4,8 +4,9 @@ import { Button } from '@shared/ui/Button';
 import { Input } from '@shared/ui/Input';
 import { Modal } from '@shared/ui/Modal';
 import { Badge } from '@shared/ui/Badge';
-import { fetchWithAuth } from '../api';
-import { Plus, Trash2, Search } from 'lucide-react';
+import { useToast } from '@shared/ui/Toast';
+import { api } from '../api';
+import { Plus, Trash2, Search, Edit, ArrowUpDown } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -13,67 +14,133 @@ interface Product {
   price: number;
   description: string;
   status: string;
+  stock?: number;
 }
 
 export const ProductPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [loading, setLoading] = useState(false);
-
-  // Form State
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState({ name: '', price: '', description: '', inventory: '100' });
+  const { addToast } = useToast();
+
+  const [sortField, setSortField] = useState<keyof Product | 'stock'>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     loadProducts();
   }, []);
 
   const loadProducts = async () => {
-    setLoading(true);
     try {
-      const res = await fetchWithAuth('/api/products');
-      if (res.ok) setProducts(await res.json());
+      const res = await api.get('/products');
+      const productList = res.data;
+      const ids = productList.map((p: any) => p.id);
+      if (ids.length > 0) {
+          try {
+             const invRes = await api.post('/inventory/batch', ids);
+             const stockMap = invRes.data;
+             setProducts(productList.map((p: any) => ({ ...p, stock: stockMap[p.id] || 0 })));
+          } catch {
+             setProducts(productList);
+          }
+      } else {
+          setProducts([]);
+      }
     } catch(e) { console.error(e); }
-    setLoading(false);
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this product?')) return;
     try {
-      const res = await fetchWithAuth(`/api/products/${id}`, { method: 'DELETE' });
-      if (res.ok) setProducts(prev => prev.filter(p => p.id !== id));
-    } catch(e) { console.error(e); }
+      await api.delete(`/products/${id}`);
+      setProducts(prev => prev.filter(p => p.id !== id));
+      addToast('Product deleted', 'success');
+    } catch(e) {
+        addToast('Failed to delete product', 'error');
+    }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetchWithAuth('/api/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          price: parseFloat(formData.price),
-          sellerId: 1, // Mock
-          status: 'ACTIVE'
-        })
-      });
-      if(res.ok) {
-        const product = await res.json();
-        // Add stock
-        await fetchWithAuth('/api/inventory/add', {
-           method: 'POST',
-           body: JSON.stringify({ productId: product.id, quantity: parseInt(formData.inventory) })
-        });
-        setIsModalOpen(false);
-        setFormData({ name: '', price: '', description: '', inventory: '100' });
-        loadProducts();
+      if (editingProduct) {
+          // Edit
+          await api.put(`/products/${editingProduct.id}`, {
+              name: formData.name,
+              description: formData.description,
+              price: parseFloat(formData.price),
+              status: 'ACTIVE'
+          });
+          // Update inventory
+          await api.post('/inventory/set', {
+              productId: editingProduct.id,
+              quantity: parseInt(formData.inventory)
+          });
+          addToast('Product updated', 'success');
+      } else {
+          // Create
+          const res = await api.post('/products', {
+            name: formData.name,
+            description: formData.description,
+            price: parseFloat(formData.price),
+            sellerId: 1, // Mock
+            status: 'ACTIVE'
+          });
+          const product = res.data;
+          await api.post('/inventory/add', { productId: product.id, quantity: parseInt(formData.inventory) });
+          addToast('Product created', 'success');
       }
-    } catch(e) { console.error(e); }
+      setIsModalOpen(false);
+      setEditingProduct(null);
+      setFormData({ name: '', price: '', description: '', inventory: '100' });
+      loadProducts();
+    } catch(e) {
+        console.error(e);
+        addToast('Operation failed', 'error');
+    }
   };
 
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+  const openEdit = (p: Product) => {
+      setEditingProduct(p);
+      setFormData({
+          name: p.name,
+          price: p.price.toString(),
+          description: p.description,
+          inventory: p.stock?.toString() || '0'
+      });
+      setIsModalOpen(true);
+  };
+
+  const handleSort = (field: keyof Product | 'stock') => {
+      if (sortField === field) {
+          setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      } else {
+          setSortField(field);
+          setSortOrder('asc');
+      }
+  };
+
+  const filteredProducts = products
+    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => {
+        const valA = a[sortField] ?? '';
+        const valB = b[sortField] ?? '';
+
+        if (typeof valA === 'string' && typeof valB === 'string') {
+            return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+        }
+        if (typeof valA === 'number' && typeof valB === 'number') {
+            return sortOrder === 'asc' ? valA - valB : valB - valA;
+        }
+        return 0;
+    });
+
+  const renderSortIcon = (field: string) => {
+      if (sortField !== field) return <ArrowUpDown size={14} style={{ opacity: 0.3, marginLeft: 4 }} />;
+      return <ArrowUpDown size={14} style={{ marginLeft: 4, transform: sortOrder === 'desc' ? 'rotate(180deg)' : 'none' }} />;
+  };
 
   return (
     <div>
@@ -83,53 +150,66 @@ export const ProductPage: React.FC = () => {
           <Input
             placeholder="Search products..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e: any) => setSearch(e.target.value)}
             style={{ paddingLeft: '2.5rem' }}
           />
         </div>
-        <Button onClick={() => setIsModalOpen(true)} icon={<Plus size={16} />}>Add Product</Button>
+        <Button onClick={() => { setEditingProduct(null); setFormData({ name: '', price: '', description: '', inventory: '100' }); setIsModalOpen(true); }} icon={<Plus size={16} />}>
+            Add Product
+        </Button>
       </div>
 
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Price</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('name')}>
+                  Name {renderSortIcon('name')}
+              </th>
+              <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('price')}>
+                  Price {renderSortIcon('price')}
+              </th>
+              <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('stock')}>
+                  Stock {renderSortIcon('stock')}
+              </th>
+              <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('status')}>
+                  Status {renderSortIcon('status')}
+              </th>
+              <th style={{ textAlign: 'left', padding: '1rem' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredProducts.map(p => (
-              <tr key={p.id}>
-                <td>
+              <tr key={p.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '1rem' }}>
                   <div style={{ fontWeight: 500 }}>{p.name}</div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{p.description}</div>
                 </td>
-                <td>${p.price.toFixed(2)}</td>
-                <td><Badge variant="success">Active</Badge></td>
-                <td>
+                <td style={{ padding: '1rem' }}>${p.price.toFixed(2)}</td>
+                <td style={{ padding: '1rem' }}>{p.stock}</td>
+                <td style={{ padding: '1rem' }}><Badge variant="success">Active</Badge></td>
+                <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
+                  <Button variant="ghost" onClick={() => openEdit(p)} icon={<Edit size={16} color="#2563eb" />} />
                   <Button variant="ghost" onClick={() => handleDelete(p.id)} icon={<Trash2 size={16} color="#ef4444" />} />
                 </td>
               </tr>
             ))}
-            {filteredProducts.length === 0 && <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
+            {filteredProducts.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
           </tbody>
         </table>
       </Card>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Product">
-        <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? "Edit Product" : "Add Product"}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Input label="Name" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} required />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Input label="Price" type="number" step="0.01" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} required />
-            <Input label="Stock" type="number" value={formData.inventory} onChange={e => setFormData({...formData, inventory: e.target.value})} required />
+            <Input label="Price" type="number" step="0.01" value={formData.price} onChange={(e: any) => setFormData({...formData, price: e.target.value})} required />
+            <Input label="Stock" type="number" value={formData.inventory} onChange={(e: any) => setFormData({...formData, inventory: e.target.value})} required />
           </div>
-          <Input label="Description" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+          <Input label="Description" value={formData.description} onChange={(e: any) => setFormData({...formData, description: e.target.value})} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Create Product</Button>
+            <Button type="submit">{editingProduct ? "Update" : "Create"}</Button>
           </div>
         </form>
       </Modal>

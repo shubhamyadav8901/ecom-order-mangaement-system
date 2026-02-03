@@ -74,6 +74,30 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    @Transactional
+    public ProductResponse updateProduct(@NonNull Long id, ProductRequest request) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
+
+        Category category = null;
+        if (request.categoryId() != null) {
+            category = categoryRepository.findById(request.categoryId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + request.categoryId()));
+        }
+
+        product.setName(request.name());
+        product.setDescription(request.description());
+        product.setPrice(request.price());
+        product.setCategory(category);
+        if (request.status() != null) {
+            product.setStatus(request.status());
+        }
+
+        Product savedProduct = productRepository.save(product);
+        logger.info("Product updated with id: {}", savedProduct.getId());
+        return mapToResponse(savedProduct);
+    }
+
     private ProductResponse mapToResponse(Product product) {
         return new ProductResponse(
                 product.getId(),

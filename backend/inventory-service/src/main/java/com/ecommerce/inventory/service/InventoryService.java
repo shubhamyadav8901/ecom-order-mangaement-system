@@ -117,4 +117,15 @@ public class InventoryService {
             reserveStock(new ReservationRequest(orderId, item.productId(), item.quantity()));
         }
     }
+
+    @Transactional(readOnly = true)
+    public java.util.Map<Long, Integer> getBatchStock(java.util.List<Long> productIds) {
+        java.util.Map<Long, Integer> stockMap = new java.util.HashMap<>();
+        if (productIds == null || productIds.isEmpty()) return stockMap;
+
+        inventoryRepository.findAllByProductIdIn(productIds).forEach(inv -> {
+            stockMap.put(inv.getProductId(), inv.getAvailableStock());
+        });
+        return stockMap;
+    }
 }
