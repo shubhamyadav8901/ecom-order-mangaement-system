@@ -2,6 +2,7 @@ package com.ecommerce.order;
 
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderItemRequest;
+import com.ecommerce.order.client.ProductCatalogClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -37,8 +40,14 @@ public class OrderIntegrationTest {
     @MockBean
     private KafkaTemplate<String, Object> kafkaTemplate;
 
+    @MockBean
+    private ProductCatalogClient productCatalogClient;
+
     @Test
     public void testCreateOrder() throws Exception {
+        when(productCatalogClient.getProduct(anyLong()))
+                .thenReturn(new ProductCatalogClient.ProductInfo(1L, new BigDecimal("50.00"), "ACTIVE"));
+
         OrderItemRequest item = new OrderItemRequest(1L, 2, new BigDecimal("50.00"));
         OrderRequest request = new OrderRequest(List.of(item));
         CustomPrincipal principal = new CustomPrincipal(
