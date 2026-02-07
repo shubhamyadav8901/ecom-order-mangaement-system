@@ -57,7 +57,7 @@ export const ProductPage: React.FC = () => {
       await api.delete(`/products/${id}`);
       setProducts(prev => prev.filter(p => p.id !== id));
       addToast('Product deleted', 'success');
-    } catch(e) {
+    } catch (_e) {
         addToast('Failed to delete product', 'error');
     }
   };

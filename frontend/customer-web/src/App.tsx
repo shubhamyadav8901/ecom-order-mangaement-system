@@ -35,7 +35,7 @@ function App() {
            setAccessToken(data.accessToken);
            setToken(data.accessToken);
         }
-      } catch (e) {
+      } catch (_e) {
         // Not authenticated
         setAccessToken(null);
         setToken(null);
@@ -182,7 +182,7 @@ function App() {
              } else {
                  addToast('Items are out of stock', 'error');
              }
-          } catch(e) {
+          } catch (e) {
               console.error(e);
               addToast('Failed to retry order', 'error');
           }

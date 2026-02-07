@@ -43,7 +43,7 @@ spring:
         spring.json.trusted.packages: com.ecommerce.inventory.event
 
     listener:
-      ack-mode: manual
+      ack-mode: record
       concurrency: ${KAFKA_CONCURRENCY:3}
 
 app:
