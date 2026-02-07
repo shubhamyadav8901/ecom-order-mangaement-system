@@ -56,3 +56,10 @@ logging:
     root: INFO
     org.apache.kafka: WARN
     org.springframework.kafka: INFO
+
+outbox:
+  publisher:
+    fixed-delay-ms: ${OUTBOX_PUBLISHER_FIXED_DELAY_MS:2000}
+    batch-size: ${OUTBOX_PUBLISHER_BATCH_SIZE:200}
+    max-attempts: ${OUTBOX_PUBLISHER_MAX_ATTEMPTS:20}
+    in-progress-timeout-ms: ${OUTBOX_PUBLISHER_IN_PROGRESS_TIMEOUT_MS:60000}

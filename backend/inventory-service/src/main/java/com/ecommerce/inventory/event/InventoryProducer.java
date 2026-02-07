@@ -1,7 +1,7 @@
 package com.ecommerce.inventory.event;
 
+import com.ecommerce.inventory.outbox.OutboxService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -10,18 +10,26 @@ import java.util.Objects;
 public class InventoryProducer {
 
     @Autowired
-    private KafkaTemplate<String, Object> kafkaTemplate;
+    private OutboxService outboxService;
 
     private static final String TOPIC_INVENTORY_RESERVED = "inventory-reserved";
     private static final String TOPIC_INVENTORY_FAILED = "inventory-failed";
 
     public void publishInventoryReserved(Long orderId, BigDecimal totalAmount) {
         InventoryReservedEvent event = new InventoryReservedEvent(orderId, totalAmount);
-        kafkaTemplate.send(TOPIC_INVENTORY_RESERVED, Objects.requireNonNull(orderId.toString()), event);
+        outboxService.enqueue(
+                TOPIC_INVENTORY_RESERVED,
+                Objects.requireNonNull(orderId.toString()),
+                TOPIC_INVENTORY_RESERVED,
+                event);
     }
 
     public void publishInventoryFailed(Long orderId, String reason) {
         InventoryFailedEvent event = new InventoryFailedEvent(orderId, reason);
-        kafkaTemplate.send(TOPIC_INVENTORY_FAILED, Objects.requireNonNull(orderId.toString()), event);
+        outboxService.enqueue(
+                TOPIC_INVENTORY_FAILED,
+                Objects.requireNonNull(orderId.toString()),
+                TOPIC_INVENTORY_FAILED,
+                event);
     }
 }

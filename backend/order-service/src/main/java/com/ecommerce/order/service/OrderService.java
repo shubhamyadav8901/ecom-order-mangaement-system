@@ -1,6 +1,8 @@
 package com.ecommerce.order.service;
 
+import com.ecommerce.common.exception.ResourceConflictException;
 import com.ecommerce.common.exception.OrderNotFoundException;
+import com.ecommerce.order.client.ProductCatalogClient;
 import com.ecommerce.order.domain.Order;
 import com.ecommerce.order.domain.OrderItem;
 import com.ecommerce.order.dto.OrderRequest;
@@ -8,16 +10,18 @@ import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.event.OrderCancelledEvent;
 import com.ecommerce.order.event.OrderCreatedEvent;
 import com.ecommerce.order.event.OrderItemEvent;
+import com.ecommerce.order.outbox.OutboxService;
 import com.ecommerce.order.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -28,7 +32,10 @@ public class OrderService {
         private OrderRepository orderRepository;
 
         @Autowired
-        private KafkaTemplate<String, Object> kafkaTemplate;
+        private ProductCatalogClient productCatalogClient;
+
+        @Autowired
+        private OutboxService outboxService;
 
         private static final String TOPIC_ORDER_CREATED = "order-created";
         private static final String TOPIC_ORDER_CANCELLED = "order-cancelled";
@@ -39,19 +46,25 @@ public class OrderService {
                 order.setUserId(userId);
                 order.setStatus("CREATED");
 
-                // SECURITY WARNING: In a production environment, prices MUST be fetched from
-                // the Product Service/Database.
-                // Trusting the frontend price is a vulnerability.
-                // For Phase 1 Prototype, we use the requested price, but this should be
-                // refactored to:
-                // BigDecimal price = productClient.getProduct(itemReq.productId()).getPrice();
+                Map<Long, ProductCatalogClient.ProductInfo> productCache = new HashMap<>();
                 List<OrderItem> items = request.items().stream()
-                                .map(itemReq -> OrderItem.builder()
-                                                .order(order)
-                                                .productId(itemReq.productId())
-                                                .quantity(itemReq.quantity())
-                                                .price(itemReq.price())
-                                                .build())
+                                .map(itemReq -> {
+                                        ProductCatalogClient.ProductInfo product = productCache.computeIfAbsent(
+                                                        itemReq.productId(),
+                                                        productCatalogClient::getProduct);
+
+                                        if (!"ACTIVE".equalsIgnoreCase(product.status())) {
+                                                throw new ResourceConflictException(
+                                                                "Product is not available for ordering: " + product.id());
+                                        }
+
+                                        return OrderItem.builder()
+                                                        .order(order)
+                                                        .productId(itemReq.productId())
+                                                        .quantity(itemReq.quantity())
+                                                        .price(product.price())
+                                                        .build();
+                                })
                                 .collect(Collectors.toList());
 
                 order.setItems(items);
@@ -70,7 +83,11 @@ public class OrderService {
                                 .collect(Collectors.toList());
 
                 OrderCreatedEvent event = new OrderCreatedEvent(savedOrder.getId(), userId, total, itemEvents);
-                kafkaTemplate.send(TOPIC_ORDER_CREATED, Objects.requireNonNull(savedOrder.getId().toString()), event);
+                outboxService.enqueue(
+                                TOPIC_ORDER_CREATED,
+                                Objects.requireNonNull(savedOrder.getId().toString()),
+                                TOPIC_ORDER_CREATED,
+                                event);
 
                 return mapToResponse(savedOrder);
         }
@@ -133,7 +150,11 @@ public class OrderService {
 
                 // Publish Event to release stock
                 OrderCancelledEvent event = new OrderCancelledEvent(orderId);
-                kafkaTemplate.send(TOPIC_ORDER_CANCELLED, Objects.requireNonNull(String.valueOf(orderId)), event);
+                outboxService.enqueue(
+                                TOPIC_ORDER_CANCELLED,
+                                Objects.requireNonNull(String.valueOf(orderId)),
+                                TOPIC_ORDER_CANCELLED,
+                                event);
         }
 
         private OrderResponse mapToResponse(Order order) {

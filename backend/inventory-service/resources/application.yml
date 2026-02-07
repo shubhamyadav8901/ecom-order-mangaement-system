@@ -41,3 +41,10 @@ app:
 logging:
   level:
     root: ERROR
+
+outbox:
+  publisher:
+    fixed-delay-ms: ${OUTBOX_PUBLISHER_FIXED_DELAY_MS:2000}
+    batch-size: ${OUTBOX_PUBLISHER_BATCH_SIZE:50}
+    max-attempts: ${OUTBOX_PUBLISHER_MAX_ATTEMPTS:10}
+    in-progress-timeout-ms: ${OUTBOX_PUBLISHER_IN_PROGRESS_TIMEOUT_MS:60000}

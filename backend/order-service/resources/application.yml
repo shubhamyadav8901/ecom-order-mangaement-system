@@ -38,6 +38,17 @@ app:
     secret: ${JWT_SECRET:9a4f2c8d3b7e1g5h9j2k4l6n8o0p3q5r7t9u1v3x5y7z9a1b3c5d7e9f1g3h5j7k}
     expiration-milliseconds: ${JWT_EXPIRATION:3600000} # 1 hour
 
+services:
+  product:
+    base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8082}
+
 logging:
   level:
     root: ERROR
+
+outbox:
+  publisher:
+    fixed-delay-ms: ${OUTBOX_PUBLISHER_FIXED_DELAY_MS:2000}
+    batch-size: ${OUTBOX_PUBLISHER_BATCH_SIZE:50}
+    max-attempts: ${OUTBOX_PUBLISHER_MAX_ATTEMPTS:10}
+    in-progress-timeout-ms: ${OUTBOX_PUBLISHER_IN_PROGRESS_TIMEOUT_MS:60000}
