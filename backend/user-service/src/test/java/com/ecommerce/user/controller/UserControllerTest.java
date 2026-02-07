@@ -1,0 +1,92 @@
+package com.ecommerce.user.controller;
+
+import com.ecommerce.common.exception.GlobalExceptionHandler;
+import com.ecommerce.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.Optional;
+
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+class UserControllerTest {
+
+    private MockMvc mockMvc;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @InjectMocks
+    private UserController userController;
+
+    @BeforeEach
+    void setUp() {
+        mockMvc = MockMvcBuilders.standaloneSetup(userController)
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void getCurrentUserSuccess() throws Exception {
+        UserDetails principal = User.withUsername("customer@example.com")
+                .password("ignored")
+                .roles("CUSTOMER")
+                .build();
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+
+        com.ecommerce.user.domain.User user = com.ecommerce.user.domain.User.builder()
+                .id(11L)
+                .email("customer@example.com")
+                .firstName("Test")
+                .lastName("Customer")
+                .role("ROLE_CUSTOMER")
+                .password("encoded")
+                .build();
+        when(userRepository.findByEmail("customer@example.com")).thenReturn(Optional.of(user));
+
+        mockMvc.perform(get("/users/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(11L))
+                .andExpect(jsonPath("$.email").value("customer@example.com"))
+                .andExpect(jsonPath("$.role").value("ROLE_CUSTOMER"));
+    }
+
+    @Test
+    void getCurrentUserUserNotFoundReturnsInternalServerError() throws Exception {
+        UserDetails principal = User.withUsername("missing@example.com")
+                .password("ignored")
+                .roles("CUSTOMER")
+                .build();
+        SecurityContextHolder.getContext()
+                .setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
+
+        when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/users/me"))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+    }
+}
