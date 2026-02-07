@@ -45,7 +45,7 @@ spring:
         spring.json.type.mapping: inventoryReservedEvent:com.ecommerce.payment.event.InventoryReservedEvent
 
     listener:
-      ack-mode: manual
+      ack-mode: record
       concurrency: ${KAFKA_CONCURRENCY:3}
 
 app:

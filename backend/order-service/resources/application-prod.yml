@@ -45,7 +45,7 @@ spring:
         spring.json.type.mapping: paymentSuccessEvent:com.ecommerce.order.event.PaymentSuccessEvent,paymentFailedEvent:com.ecommerce.order.event.PaymentFailedEvent,inventoryFailedEvent:com.ecommerce.order.event.InventoryFailedEvent
 
     listener:
-      ack-mode: manual
+      ack-mode: record
       concurrency: ${KAFKA_CONCURRENCY:3}
 
 app:

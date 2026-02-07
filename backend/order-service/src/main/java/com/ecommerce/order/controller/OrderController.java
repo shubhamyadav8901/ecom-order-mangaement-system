@@ -7,7 +7,9 @@ import com.ecommerce.order.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,12 +35,17 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable @NonNull Long id) {
-        return ResponseEntity.ok(orderService.getOrderById(id));
+    public ResponseEntity<OrderResponse> getOrderById(Authentication authentication, @PathVariable @NonNull Long id) {
+        if (isAdmin(authentication)) {
+            return ResponseEntity.ok(orderService.getOrderById(id));
+        }
+        Long userId = getUserIdFromAuthentication(authentication);
+        return ResponseEntity.ok(orderService.getOrderByIdForUser(id, userId));
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getAllOrders() {
+    public ResponseEntity<List<OrderResponse>> getAllOrders(Authentication authentication) {
+        ensureAdmin(authentication);
         return ResponseEntity.ok(orderService.getAllOrders());
     }
 
@@ -49,13 +56,28 @@ public class OrderController {
     }
 
     @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderResponse>> getUserOrders(@PathVariable Long userId) {
+    public ResponseEntity<List<OrderResponse>> getUserOrders(Authentication authentication, @PathVariable Long userId) {
+        ensureAdmin(authentication);
         return ResponseEntity.ok(orderService.getUserOrders(userId));
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<Void> cancelOrder(@PathVariable Long id) {
-        orderService.cancelOrder(id);
+    public ResponseEntity<Void> cancelOrder(Authentication authentication, @PathVariable Long id) {
+        boolean admin = isAdmin(authentication);
+        Long userId = admin ? null : getUserIdFromAuthentication(authentication);
+        orderService.cancelOrder(id, userId, admin);
         return ResponseEntity.ok().build();
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
+    }
+
+    private void ensureAdmin(Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            throw new AccessDeniedException("Admin access required");
+        }
     }
 }

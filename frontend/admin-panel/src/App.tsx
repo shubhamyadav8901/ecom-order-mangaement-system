@@ -32,7 +32,7 @@ function App() {
           }
           setToken(data.accessToken);
         }
-      } catch (e) {
+      } catch (_e) {
         setAccessToken(null);
         setToken(null);
       } finally {
@@ -113,7 +113,7 @@ function App() {
 
   return (
     <AdminLayout currentView={currentView} onNavigate={setCurrentView} onLogout={handleLogout}>
-      {currentView === 'dashboard' && <DashboardPage onNavigate={setCurrentView} />}
+      {currentView === 'dashboard' && <DashboardPage />}
       {currentView === 'products' && <ProductPage />}
       {currentView === 'orders' && <OrderPage />}
     </AdminLayout>

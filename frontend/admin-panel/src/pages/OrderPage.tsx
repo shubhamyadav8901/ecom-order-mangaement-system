@@ -31,7 +31,7 @@ export const OrderPage: React.FC = () => {
           addToast('Order cancelled', 'success');
           fetchOrders();
           setSelectedOrder(null);
-      } catch (e) {
+      } catch (_e) {
           addToast('Failed to cancel order', 'error');
       }
   };

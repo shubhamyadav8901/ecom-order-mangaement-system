@@ -12,6 +12,7 @@ import com.ecommerce.order.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +83,13 @@ public class OrderService {
         }
 
         @Transactional(readOnly = true)
+        public OrderResponse getOrderByIdForUser(@NonNull Long id, @NonNull Long userId) {
+                Order order = orderRepository.findByIdAndUserId(id, userId)
+                                .orElseThrow(() -> new OrderNotFoundException(id));
+                return mapToResponse(order);
+        }
+
+        @Transactional(readOnly = true)
         public List<OrderResponse> getAllOrders() {
                 return orderRepository.findAll().stream()
                                 .map(this::mapToResponse)
@@ -104,9 +112,13 @@ public class OrderService {
         }
 
         @Transactional
-        public void cancelOrder(@NonNull Long orderId) {
+        public void cancelOrder(@NonNull Long orderId, Long requesterUserId, boolean isAdmin) {
                 Order order = orderRepository.findById(orderId)
                         .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+                if (!isAdmin && (requesterUserId == null || !requesterUserId.equals(order.getUserId()))) {
+                        throw new AccessDeniedException("You are not allowed to cancel this order");
+                }
 
                 if ("CANCELLED".equals(order.getStatus())) {
                         throw new RuntimeException("Order is already cancelled");

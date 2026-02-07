@@ -3,6 +3,8 @@ package com.ecommerce.user.controller;
 import com.ecommerce.user.dto.*;
 import com.ecommerce.user.service.AuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,16 +21,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request, jakarta.servlet.http.HttpServletResponse response) {
+    public ResponseEntity<AuthResponse> login(
+            @RequestBody LoginRequest request,
+            jakarta.servlet.http.HttpServletRequest servletRequest,
+            jakarta.servlet.http.HttpServletResponse response) {
         AuthResponse authResponse = authService.login(request);
-
-        // Set HttpOnly Cookie
-        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("refresh_token", authResponse.refreshToken());
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set to true in production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge(7 * 24 * 60 * 60); // 7 days
-        response.addCookie(cookie);
+        boolean secure = isSecureRequest(servletRequest);
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(authResponse.refreshToken(), secure, false).toString());
 
         return ResponseEntity.ok(authResponse);
     }
@@ -53,13 +52,26 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletResponse response) {
-        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("refresh_token", "");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set to true in production (HTTPS)
-        cookie.setPath("/");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
+    public ResponseEntity<Void> logout(
+            jakarta.servlet.http.HttpServletRequest servletRequest,
+            jakarta.servlet.http.HttpServletResponse response) {
+        boolean secure = isSecureRequest(servletRequest);
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie("", secure, true).toString());
         return ResponseEntity.noContent().build();
+    }
+
+    private ResponseCookie buildRefreshTokenCookie(String token, boolean secure, boolean clear) {
+        return ResponseCookie.from("refresh_token", token)
+                .httpOnly(true)
+                .secure(secure)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(clear ? 0 : (7L * 24 * 60 * 60))
+                .build();
+    }
+
+    private boolean isSecureRequest(jakarta.servlet.http.HttpServletRequest request) {
+        String forwardedProto = request.getHeader("X-Forwarded-Proto");
+        return request.isSecure() || (forwardedProto != null && "https".equalsIgnoreCase(forwardedProto));
     }
 }
