@@ -108,12 +108,14 @@ function App() {
   };
 
   const handleLogout = () => {
-    // Ideally call logout endpoint to clear cookie
-    // But for now just clear memory
-    setAccessToken(null);
-    setToken(null);
-    setView('catalog');
-    addToast('Logged out successfully', 'info');
+    api.post('/auth/logout').catch(err => {
+      console.error(err);
+    }).finally(() => {
+      setAccessToken(null);
+      setToken(null);
+      setView('catalog');
+      addToast('Logged out successfully', 'info');
+    });
   };
 
   if (loadingAuth) {

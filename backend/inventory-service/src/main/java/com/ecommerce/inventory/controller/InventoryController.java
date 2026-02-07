@@ -20,6 +20,12 @@ public class InventoryController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/set")
+    public ResponseEntity<Void> setStock(@RequestBody StockRequest request) {
+        inventoryService.setStock(request);
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/reserve")
     public ResponseEntity<Void> reserveStock(@RequestBody ReservationRequest request) {
         inventoryService.reserveStock(request);

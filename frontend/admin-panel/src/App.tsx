@@ -25,8 +25,12 @@ function App() {
       try {
         const { data } = await api.post('/auth/refresh-token');
         if (data.accessToken) {
-           setAccessToken(data.accessToken);
-           setToken(data.accessToken);
+          setAccessToken(data.accessToken);
+          const meResponse = await api.get('/users/me');
+          if (meResponse.data?.role !== 'ROLE_ADMIN') {
+            throw new Error('Not authorized');
+          }
+          setToken(data.accessToken);
         }
       } catch (e) {
         setAccessToken(null);
@@ -45,19 +49,28 @@ function App() {
       const { accessToken } = response.data;
       // Do not store in localStorage
       setAccessToken(accessToken);
+      const meResponse = await api.get('/users/me');
+      if (meResponse.data?.role !== 'ROLE_ADMIN') {
+        throw new Error('Not authorized');
+      }
       setToken(accessToken);
       addToast('Welcome Admin', 'success');
     } catch (error: any) {
       console.error(error);
-      addToast('Login Failed: ' + (error.response?.data?.message || 'Check credentials'), 'error');
+      setAccessToken(null);
+      setToken(null);
+      addToast('Login Failed: ' + (error.response?.data?.message || error.message || 'Check credentials'), 'error');
     }
   };
 
   const handleLogout = () => {
-    // Ideally call logout endpoint
-    setAccessToken(null);
-    setToken(null);
-    addToast('Logged out', 'info');
+    api.post('/auth/logout').catch(err => {
+      console.error(err);
+    }).finally(() => {
+      setAccessToken(null);
+      setToken(null);
+      addToast('Logged out', 'info');
+    });
   };
 
   if (loadingAuth) {
