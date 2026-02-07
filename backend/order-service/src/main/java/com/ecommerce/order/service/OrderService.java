@@ -5,6 +5,7 @@ import com.ecommerce.order.domain.Order;
 import com.ecommerce.order.domain.OrderItem;
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
+import com.ecommerce.order.event.OrderCancelledEvent;
 import com.ecommerce.order.event.OrderCreatedEvent;
 import com.ecommerce.order.event.OrderItemEvent;
 import com.ecommerce.order.repository.OrderRepository;
@@ -103,7 +104,7 @@ public class OrderService {
         }
 
         @Transactional
-        public void cancelOrder(Long orderId) {
+        public void cancelOrder(@NonNull Long orderId) {
                 Order order = orderRepository.findById(orderId)
                         .orElseThrow(() -> new OrderNotFoundException(orderId));
 
@@ -119,8 +120,8 @@ public class OrderService {
                 orderRepository.save(order);
 
                 // Publish Event to release stock
-                com.ecommerce.order.event.OrderCancelledEvent event = new com.ecommerce.order.event.OrderCancelledEvent(orderId);
-                kafkaTemplate.send(TOPIC_ORDER_CANCELLED, String.valueOf(orderId), event);
+                OrderCancelledEvent event = new OrderCancelledEvent(orderId);
+                kafkaTemplate.send(TOPIC_ORDER_CANCELLED, Objects.requireNonNull(String.valueOf(orderId)), event);
         }
 
         private OrderResponse mapToResponse(Order order) {

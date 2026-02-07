@@ -38,6 +38,19 @@ public class InventoryService {
     }
 
     @Transactional
+    public void setStock(StockRequest request) {
+        Inventory inventory = inventoryRepository.findByProductIdLocked(request.productId())
+                .orElse(Inventory.builder()
+                        .productId(request.productId())
+                        .availableStock(0)
+                        .reservedStock(0)
+                        .build());
+
+        inventory.setAvailableStock(request.quantity());
+        inventoryRepository.save(inventory);
+    }
+
+    @Transactional
     public void reserveStock(ReservationRequest request) {
         // Pessimistic Lock to prevent overselling
         Inventory inventory = inventoryRepository.findByProductIdLocked(request.productId())

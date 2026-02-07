@@ -51,4 +51,15 @@ public class AuthController {
 
         return ResponseEntity.ok(authService.refreshToken(new RefreshTokenRequest(refreshToken)));
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(jakarta.servlet.http.HttpServletResponse response) {
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("refresh_token", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false); // Set to true in production (HTTPS)
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        return ResponseEntity.noContent().build();
+    }
 }
