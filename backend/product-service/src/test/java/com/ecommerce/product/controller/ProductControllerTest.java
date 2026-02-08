@@ -51,9 +51,11 @@ class ProductControllerTest {
 
     @Test
     void createProductSuccess() throws Exception {
-        ProductRequest req = new ProductRequest("Phone", "Smartphone", new BigDecimal("499.99"), 1L, 10L, "ACTIVE");
+        ProductRequest req = new ProductRequest("Phone", "Smartphone", new BigDecimal("499.99"), 1L, 10L, "ACTIVE",
+                List.of("https://cdn.example.com/phone-1.jpg", "https://cdn.example.com/phone-2.jpg"));
         ProductResponse resp = new ProductResponse(101L, "Phone", "Smartphone", new BigDecimal("499.99"),
-                1L, "Electronics", 10L, "ACTIVE", null);
+                1L, "Electronics", 10L, "ACTIVE", null,
+                List.of("https://cdn.example.com/phone-1.jpg", "https://cdn.example.com/phone-2.jpg"));
 
         when(productService.createProduct(any(ProductRequest.class))).thenReturn(resp);
 
@@ -79,8 +81,10 @@ class ProductControllerTest {
     @Test
     void getAllProductsSuccess() throws Exception {
         when(productService.getAllProducts()).thenReturn(List.of(
-                new ProductResponse(1L, "P1", "D1", new BigDecimal("10.00"), null, null, 1L, "ACTIVE", null),
-                new ProductResponse(2L, "P2", "D2", new BigDecimal("20.00"), null, null, 1L, "ACTIVE", null)
+                new ProductResponse(1L, "P1", "D1", new BigDecimal("10.00"), null, null, 1L, "ACTIVE", null,
+                        List.of()),
+                new ProductResponse(2L, "P2", "D2", new BigDecimal("20.00"), null, null, 1L, "ACTIVE", null,
+                        List.of())
         ));
 
         mockMvc.perform(get("/products"))
@@ -101,7 +105,8 @@ class ProductControllerTest {
     @Test
     void getProductByIdSuccess() throws Exception {
         when(productService.getProductById(1L)).thenReturn(
-                new ProductResponse(1L, "P1", "D1", new BigDecimal("10.00"), 2L, "Cat", 1L, "ACTIVE", null)
+                new ProductResponse(1L, "P1", "D1", new BigDecimal("10.00"), 2L, "Cat", 1L, "ACTIVE", null,
+                        List.of())
         );
 
         mockMvc.perform(get("/products/1"))
@@ -119,10 +124,12 @@ class ProductControllerTest {
 
     @Test
     void updateProductSuccess() throws Exception {
-        ProductRequest req = new ProductRequest("Phone Updated", "Updated", new BigDecimal("599.99"), 1L, 10L, "ACTIVE");
+        ProductRequest req = new ProductRequest("Phone Updated", "Updated", new BigDecimal("599.99"), 1L, 10L,
+                "ACTIVE", List.of("https://cdn.example.com/updated-1.jpg"));
         when(productService.updateProduct(any(Long.class), any(ProductRequest.class))).thenReturn(
                 new ProductResponse(1L, "Phone Updated", "Updated", new BigDecimal("599.99"),
-                        1L, "Electronics", 10L, "ACTIVE", null)
+                        1L, "Electronics", 10L, "ACTIVE", null,
+                        List.of("https://cdn.example.com/updated-1.jpg"))
         );
 
         mockMvc.perform(put("/products/1")

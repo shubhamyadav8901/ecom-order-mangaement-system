@@ -47,6 +47,7 @@ public class ProductService {
                         .sellerId(request.sellerId())
                         .status(request.status() != null ? request.status() : "ACTIVE")
                         .category(category)
+                        .imageUrls(normalizeImageUrls(request.imageUrls()))
                         .build());
 
         Product savedProduct = productRepository.save(product);
@@ -89,6 +90,9 @@ public class ProductService {
         product.setDescription(request.description());
         product.setPrice(request.price());
         product.setCategory(category);
+        if (request.imageUrls() != null) {
+            product.setImageUrls(normalizeImageUrls(request.imageUrls()));
+        }
         if (request.status() != null) {
             product.setStatus(request.status());
         }
@@ -108,6 +112,19 @@ public class ProductService {
                 product.getCategory() != null ? product.getCategory().getName() : null,
                 product.getSellerId(),
                 product.getStatus(),
-                product.getCreatedAt());
+                product.getCreatedAt(),
+                normalizeImageUrls(product.getImageUrls()));
+    }
+
+    private List<String> normalizeImageUrls(List<String> imageUrls) {
+        if (imageUrls == null) {
+            return List.of();
+        }
+        return imageUrls.stream()
+                .filter(Objects::nonNull)
+                .map(String::trim)
+                .filter(url -> !url.isBlank())
+                .distinct()
+                .collect(Collectors.toList());
     }
 }

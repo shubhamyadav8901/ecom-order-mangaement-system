@@ -43,7 +43,15 @@ export const CartPage: React.FC<CartPageProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {items.map(item => (
             <Card key={item.product.id} style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', padding: '1.5rem' }}>
-               <div style={{ width: '80px', height: '80px', background: '#f3f4f6', borderRadius: '0.5rem' }} />
+               <div style={{ width: '80px', height: '80px', background: '#f3f4f6', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                 {item.product.imageUrls && item.product.imageUrls.length > 0 ? (
+                   <img
+                     src={item.product.imageUrls[0]}
+                     alt={item.product.name}
+                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                   />
+                 ) : null}
+               </div>
                <div style={{ flex: 1 }}>
                  <h4 style={{ fontWeight: 600 }}>{item.product.name}</h4>
                  <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>${item.product.price.toFixed(2)}</p>
