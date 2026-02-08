@@ -14,29 +14,42 @@ interface StoreLayoutProps {
 export const StoreLayout: React.FC<StoreLayoutProps> = ({
   children, currentView, onNavigate, cartCount, isLoggedIn, onLogout
 }) => {
+  const navButtonStyle: React.CSSProperties = {
+    cursor: 'pointer',
+    background: 'none',
+    border: 'none',
+    padding: 0,
+    font: 'inherit',
+    color: 'inherit',
+  };
+
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <nav style={{ background: 'white', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 10 }}>
         <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div
+          <button
+            type="button"
             onClick={() => onNavigate('catalog')}
-            style={{ fontSize: '1.5rem', fontWeight: 700, color: '#2563eb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            style={{ ...navButtonStyle, fontSize: '1.5rem', fontWeight: 700, color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            aria-label="Go to catalog"
           >
             StoreFront
-          </div>
+          </button>
 
           <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
-            <div
-               style={{ cursor: 'pointer', fontWeight: currentView === 'catalog' ? 600 : 400 }}
+            <button
+               type="button"
+               style={{ ...navButtonStyle, fontWeight: currentView === 'catalog' ? 600 : 400 }}
                onClick={() => onNavigate('catalog')}
             >
               Shop
-            </div>
+            </button>
 
             {isLoggedIn && (
               <>
-                <div
-                  style={{ cursor: 'pointer', position: 'relative', display: 'flex', alignItems: 'center' }}
+                <button
+                  type="button"
+                  style={{ ...navButtonStyle, position: 'relative', display: 'flex', alignItems: 'center' }}
                   onClick={() => onNavigate('cart')}
                   aria-label="Cart"
                 >
@@ -52,14 +65,15 @@ export const StoreLayout: React.FC<StoreLayoutProps> = ({
                       {cartCount}
                     </span>
                   )}
-                </div>
+                </button>
 
-                <div
-                  style={{ cursor: 'pointer', fontWeight: currentView === 'orders' ? 600 : 400 }}
+                <button
+                  type="button"
+                  style={{ ...navButtonStyle, fontWeight: currentView === 'orders' ? 600 : 400 }}
                   onClick={() => onNavigate('orders')}
                 >
                   Orders
-                </div>
+                </button>
 
                 <Button variant="ghost" onClick={onLogout} style={{ padding: '0.25rem 0.5rem' }}>
                    <LogOut size={18} />

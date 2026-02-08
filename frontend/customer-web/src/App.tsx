@@ -11,9 +11,17 @@ import { Button } from '@shared/ui/Button';
 import { Spinner } from '@shared/ui/Spinner';
 
 interface CartItem {
-  product: any;
+  product: { id: number; price: number; stock?: number; [key: string]: any };
   quantity: number;
 }
+
+const getApiErrorMessage = (err: any, fallback: string): string => {
+  const message = err?.response?.data?.message || err?.response?.data?.error || err?.message;
+  if (!message || typeof message !== 'string') {
+    return fallback;
+  }
+  return message;
+};
 
 function App() {
   const { addToast } = useToast();
@@ -25,6 +33,7 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   // Initial Auth Check
   useEffect(() => {
@@ -46,17 +55,26 @@ function App() {
     checkAuth();
   }, []);
 
-  const addToCart = (product: any, quantity = 1) => {
+  const addToCart = (product: CartItem['product'], quantity = 1) => {
     setCartItems(prev => {
       const existing = prev.find(item => item.product.id === product.id);
+      const maxAllowed = typeof product.stock === 'number' ? product.stock : Number.POSITIVE_INFINITY;
+
+      if (maxAllowed <= 0) {
+        return prev;
+      }
+
       if (existing) {
+        const nextQuantity = Math.min(existing.quantity + quantity, maxAllowed);
         return prev.map(item =>
           item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, product: { ...item.product, ...product }, quantity: nextQuantity }
             : item
         );
       }
-      return [...prev, { product, quantity }];
+
+      const initialQuantity = Math.min(quantity, maxAllowed);
+      return [...prev, { product, quantity: initialQuantity }];
     });
   };
 
@@ -74,7 +92,29 @@ function App() {
   const clearCart = () => setCartItems([]);
 
   const handleCheckout = async () => {
+    if (isCheckingOut || cartItems.length === 0) return;
+    setIsCheckingOut(true);
     try {
+      const catalogResponse = await api.get('/products');
+      const catalogProducts: Array<{ id: number; status?: string }> = Array.isArray(catalogResponse.data)
+        ? catalogResponse.data
+        : [];
+      const validIds = new Set(
+        catalogProducts
+          .filter((p) => p && typeof p.id === 'number' && (p.status || 'ACTIVE').toUpperCase() === 'ACTIVE')
+          .map((p) => p.id)
+      );
+
+      const invalidItemIds = cartItems
+        .filter((item) => !validIds.has(item.product.id))
+        .map((item) => item.product.id);
+
+      if (invalidItemIds.length > 0) {
+        setCartItems((prev) => prev.filter((item) => !invalidItemIds.includes(item.product.id)));
+        addToast(`Removed unavailable product(s): ${invalidItemIds.join(', ')}`, 'error');
+        return;
+      }
+
       const items = cartItems.map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
@@ -86,9 +126,26 @@ function App() {
       addToast('Order placed successfully!', 'success');
       setCartItems([]);
       setView('orders');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      addToast('Checkout failed. Please check stock.', 'error');
+      const message = getApiErrorMessage(err, 'Checkout failed. Please try again.');
+      const productMatch = message.match(/product\s+(\d+)/i);
+      if (productMatch?.[1]) {
+        const staleProductId = Number(productMatch[1]);
+        if (!Number.isNaN(staleProductId)) {
+          setCartItems((prev) => prev.filter((item) => item.product.id !== staleProductId));
+          addToast(`Removed unavailable product ${staleProductId} from cart.`, 'error');
+          return;
+        }
+      }
+      const status = err?.response?.status;
+      if (status === 409) {
+        addToast(message, 'error');
+      } else {
+        addToast(message, 'error');
+      }
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
@@ -136,9 +193,6 @@ function App() {
             <Input type="password" placeholder="Password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required />
             <Button type="submit" style={{ width: '100%' }}>Sign In</Button>
           </form>
-          <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-             Use user@example.com / password
-          </p>
         </div>
       </div>
     );
@@ -153,7 +207,16 @@ function App() {
       onLogout={handleLogout}
     >
       {view === 'catalog' && <HomePage onAddToCart={addToCart} />}
-      {view === 'cart' && <CartPage items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateQuantity} onClear={clearCart} onCheckout={handleCheckout} />}
+      {view === 'cart' && (
+        <CartPage
+          items={cartItems}
+          onRemove={removeFromCart}
+          onUpdateQuantity={updateQuantity}
+          onClear={clearCart}
+          onCheckout={handleCheckout}
+          isCheckingOut={isCheckingOut}
+        />
+      )}
       {view === 'orders' && <OrderPage onRetry={async (items) => {
           try {
              const ids = items.map(i => i.productId);
@@ -169,9 +232,13 @@ function App() {
                  if (product) {
                      const stock = stockMap[product.id] || 0;
                      if (stock > 0) {
-                         const qtyToAdd = Math.min(item.quantity, stock);
-                         addToCart({ ...product, stock }, qtyToAdd);
-                         addedCount++;
+                         const existingQty = cartItems.find(ci => ci.product.id === product.id)?.quantity || 0;
+                         const remaining = Math.max(0, stock - existingQty);
+                         const qtyToAdd = Math.min(item.quantity, remaining);
+                         if (qtyToAdd > 0) {
+                           addToCart({ ...product, stock }, qtyToAdd);
+                           addedCount++;
+                         }
                      }
                  }
              });

@@ -64,19 +64,32 @@ export const ProductPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const parsedPrice = Number(formData.price);
+    const parsedInventory = Number(formData.inventory);
+
+    if (!Number.isFinite(parsedPrice) || parsedPrice <= 0) {
+      addToast('Price must be a valid number greater than 0', 'error');
+      return;
+    }
+
+    if (!Number.isInteger(parsedInventory) || parsedInventory < 0) {
+      addToast('Stock must be a whole number >= 0', 'error');
+      return;
+    }
+
     try {
       if (editingProduct) {
           // Edit
           await api.put(`/products/${editingProduct.id}`, {
               name: formData.name,
               description: formData.description,
-              price: parseFloat(formData.price),
+              price: parsedPrice,
               status: 'ACTIVE'
           });
           // Update inventory
           await api.post('/inventory/set', {
               productId: editingProduct.id,
-              quantity: parseInt(formData.inventory)
+              quantity: parsedInventory
           });
           addToast('Product updated', 'success');
       } else {
@@ -84,12 +97,12 @@ export const ProductPage: React.FC = () => {
           const res = await api.post('/products', {
             name: formData.name,
             description: formData.description,
-            price: parseFloat(formData.price),
+            price: parsedPrice,
             sellerId: 1, // Mock
             status: 'ACTIVE'
           });
           const product = res.data;
-          await api.post('/inventory/add', { productId: product.id, quantity: parseInt(formData.inventory) });
+          await api.post('/inventory/add', { productId: product.id, quantity: parsedInventory });
           addToast('Product created', 'success');
       }
       setIsModalOpen(false);
@@ -203,8 +216,8 @@ export const ProductPage: React.FC = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Input label="Name" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} required />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Input label="Price" type="number" step="0.01" value={formData.price} onChange={(e: any) => setFormData({...formData, price: e.target.value})} required />
-            <Input label="Stock" type="number" value={formData.inventory} onChange={(e: any) => setFormData({...formData, inventory: e.target.value})} required />
+          <Input label="Price" type="number" step="0.01" min="0.01" value={formData.price} onChange={(e: any) => setFormData({...formData, price: e.target.value})} required />
+          <Input label="Stock" type="number" min="0" step="1" value={formData.inventory} onChange={(e: any) => setFormData({...formData, inventory: e.target.value})} required />
           </div>
           <Input label="Description" value={formData.description} onChange={(e: any) => setFormData({...formData, description: e.target.value})} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>

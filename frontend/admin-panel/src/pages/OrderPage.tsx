@@ -54,11 +54,19 @@ export const OrderPage: React.FC = () => {
             {orders.map(o => (
               <tr
                 key={o.id}
-                onClick={() => setSelectedOrder(o)}
-                style={{ borderTop: '1px solid #e5e7eb', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                style={{ borderTop: '1px solid #e5e7eb', transition: 'background-color 0.2s' }}
                 className="hover:bg-gray-50"
               >
-                <td style={{ padding: '1rem' }}>#{o.id}</td>
+                <td style={{ padding: '1rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(o)}
+                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}
+                    aria-label={`Open details for order ${o.id}`}
+                  >
+                    #{o.id}
+                  </button>
+                </td>
                 <td style={{ padding: '1rem' }}>User {o.userId}</td>
                 <td style={{ padding: '1rem' }}><Badge variant={o.status === 'PAID' ? 'success' : o.status === 'CANCELLED' ? 'danger' : 'info'}>{o.status}</Badge></td>
                 <td style={{ padding: '1rem' }}>${o.totalAmount.toFixed(2)}</td>

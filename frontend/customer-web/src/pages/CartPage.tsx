@@ -14,9 +14,17 @@ interface CartPageProps {
   onUpdateQuantity: (id: number, qty: number) => void;
   onClear: () => void;
   onCheckout: () => void;
+  isCheckingOut?: boolean;
 }
 
-export const CartPage: React.FC<CartPageProps> = ({ items, onRemove, onUpdateQuantity, onClear, onCheckout }) => {
+export const CartPage: React.FC<CartPageProps> = ({
+  items,
+  onRemove,
+  onUpdateQuantity,
+  onClear,
+  onCheckout,
+  isCheckingOut = false,
+}) => {
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
 
   if (items.length === 0) {
@@ -77,7 +85,9 @@ export const CartPage: React.FC<CartPageProps> = ({ items, onRemove, onUpdateQua
              <span style={{ fontSize: '1.125rem', fontWeight: 700 }}>Total</span>
              <span style={{ fontSize: '1.125rem', fontWeight: 700 }}>${total.toFixed(2)}</span>
            </div>
-           <Button style={{ width: '100%' }} onClick={onCheckout}>Checkout</Button>
+           <Button style={{ width: '100%' }} onClick={onCheckout} disabled={isCheckingOut}>
+             {isCheckingOut ? 'Processing...' : 'Checkout'}
+           </Button>
            <Button variant="ghost" style={{ width: '100%', marginTop: '0.5rem' }} onClick={onClear}>Clear Cart</Button>
         </Card>
       </div>
