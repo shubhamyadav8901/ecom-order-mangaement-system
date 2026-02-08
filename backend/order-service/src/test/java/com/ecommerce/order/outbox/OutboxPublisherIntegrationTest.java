@@ -10,6 +10,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,7 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest
+@SpringBootTest(properties = "spring.task.scheduling.enabled=false")
 class OutboxPublisherIntegrationTest {
 
     @Autowired
@@ -34,7 +35,7 @@ class OutboxPublisherIntegrationTest {
 
     @BeforeEach
     void setup() {
-        outboxEventRepository.deleteAll();
+        jdbcTemplate.execute("TRUNCATE TABLE outbox_events RESTART IDENTITY");
         when(kafkaTemplate.send(anyString(), anyString(), any()))
                 .thenReturn(CompletableFuture.completedFuture(null));
     }
@@ -72,7 +73,7 @@ class OutboxPublisherIntegrationTest {
     private OutboxEvent saveEvent(String eventKey, OutboxStatus status, int attempts,
                                   String topic, String eventType, String aggregateKey, String payload) {
         return outboxEventRepository.save(OutboxEvent.builder()
-                .eventKey(eventKey)
+                .eventKey(eventKey + ":" + UUID.randomUUID())
                 .status(status)
                 .attemptCount(attempts)
                 .topic(topic)
