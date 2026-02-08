@@ -16,6 +16,18 @@ interface Product {
   status: string;
   stock?: number;
   imageUrls?: string[];
+  categoryId?: number | null;
+  categoryName?: string | null;
+}
+
+interface Category {
+  id: number;
+  name: string;
+}
+
+interface NewCategoryFormData {
+  name: string;
+  description: string;
 }
 
 interface ProductFormData {
@@ -23,6 +35,7 @@ interface ProductFormData {
   price: string;
   description: string;
   inventory: string;
+  categoryId: string;
   imageUrls: string[];
   imageUrlInput: string;
 }
@@ -37,17 +50,22 @@ export const ProductPage: React.FC = () => {
     price: '',
     description: '',
     inventory: '100',
+    categoryId: '',
     imageUrls: [],
     imageUrlInput: ''
   });
+  const [categories, setCategories] = useState<Category[]>([]);
   const { addToast } = useToast();
 
   const [sortField, setSortField] = useState<keyof Product | 'stock'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedImageByProduct, setSelectedImageByProduct] = useState<Record<number, number>>({});
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryForm, setNewCategoryForm] = useState<NewCategoryFormData>({ name: '', description: '' });
 
   useEffect(() => {
     loadProducts();
+    loadCategories();
   }, []);
 
   const loadProducts = async () => {
@@ -69,6 +87,39 @@ export const ProductPage: React.FC = () => {
     } catch(e) { console.error(e); }
   };
 
+  const loadCategories = async () => {
+    try {
+      const res = await api.get('/categories');
+      setCategories(Array.isArray(res.data) ? res.data : []);
+    } catch (e) {
+      console.error(e);
+      setCategories([]);
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    const name = newCategoryForm.name.trim();
+    if (!name) {
+      addToast('Category name is required', 'error');
+      return;
+    }
+    try {
+      const res = await api.post('/categories', {
+        name,
+        description: newCategoryForm.description.trim() || null
+      });
+      const created = res.data as Category;
+      setCategories((prev) => [...prev, created]);
+      setFormData((prev) => ({ ...prev, categoryId: String(created.id) }));
+      setNewCategoryForm({ name: '', description: '' });
+      setShowCreateCategory(false);
+      addToast('Category created', 'success');
+    } catch (e) {
+      console.error(e);
+      addToast('Failed to create category', 'error');
+    }
+  };
+
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this product?')) return;
     try {
@@ -86,9 +137,12 @@ export const ProductPage: React.FC = () => {
       price: '',
       description: '',
       inventory: '100',
+      categoryId: '',
       imageUrls: [],
       imageUrlInput: ''
     });
+    setShowCreateCategory(false);
+    setNewCategoryForm({ name: '', description: '' });
   };
 
   const addImageUrl = () => {
@@ -158,6 +212,7 @@ export const ProductPage: React.FC = () => {
               description: formData.description,
               price: parsedPrice,
               status: 'ACTIVE',
+              categoryId: formData.categoryId ? Number(formData.categoryId) : null,
               imageUrls: formData.imageUrls
           });
           // Update inventory
@@ -174,6 +229,7 @@ export const ProductPage: React.FC = () => {
             price: parsedPrice,
             sellerId: 1, // Mock
             status: 'ACTIVE',
+            categoryId: formData.categoryId ? Number(formData.categoryId) : null,
             imageUrls: formData.imageUrls
           });
           const product = res.data;
@@ -197,6 +253,7 @@ export const ProductPage: React.FC = () => {
           price: p.price.toString(),
           description: p.description,
           inventory: p.stock?.toString() || '0',
+          categoryId: p.categoryId ? String(p.categoryId) : '',
           imageUrls: p.imageUrls || [],
           imageUrlInput: ''
       });
@@ -213,7 +270,7 @@ export const ProductPage: React.FC = () => {
   };
 
   const filteredProducts = products
-    .filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    .filter(p => `${p.name} ${p.categoryName || ''}`.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
         const valA = a[sortField] ?? '';
         const valB = b[sortField] ?? '';
@@ -272,6 +329,7 @@ export const ProductPage: React.FC = () => {
               <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('name')}>
                   Name {renderSortIcon('name')}
               </th>
+              <th style={{ textAlign: 'left', padding: '1rem' }}>Category</th>
               <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('price')}>
                   Price {renderSortIcon('price')}
               </th>
@@ -330,6 +388,7 @@ export const ProductPage: React.FC = () => {
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{p.description}</div>
                 </td>
+                <td style={{ padding: '1rem' }}>{p.categoryName || 'Uncategorized'}</td>
                 <td style={{ padding: '1rem', fontWeight: 600 }}>${p.price.toFixed(2)}</td>
                 <td style={{ padding: '1rem', fontWeight: 600 }}>{p.stock}</td>
                 <td style={{ padding: '1rem' }}>
@@ -343,7 +402,7 @@ export const ProductPage: React.FC = () => {
                 </td>
               </tr>
             ))}
-            {filteredProducts.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
+            {filteredProducts.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
           </tbody>
         </table>
       </Card>
@@ -351,6 +410,42 @@ export const ProductPage: React.FC = () => {
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingProduct ? "Edit Product" : "Add Product"}>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <Input label="Name" value={formData.name} onChange={(e: any) => setFormData({...formData, name: e.target.value})} required />
+          <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', fontSize: '0.9rem', fontWeight: 500 }}>
+            Category
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <select
+                value={formData.categoryId}
+                onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
+                style={{ flex: 1, height: 38, border: '1px solid #d1d5db', borderRadius: 8, padding: '0 0.6rem', background: '#fff' }}
+              >
+                <option value="">Uncategorized</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>{category.name}</option>
+                ))}
+              </select>
+              <Button type="button" variant="ghost" onClick={() => setShowCreateCategory((prev) => !prev)}>
+                {showCreateCategory ? 'Close' : 'New Category'}
+              </Button>
+            </div>
+            {showCreateCategory && (
+              <div style={{ border: '1px dashed #cbd5e1', borderRadius: 8, padding: '0.75rem', marginTop: '0.35rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <Input
+                  label="Category Name"
+                  value={newCategoryForm.name}
+                  onChange={(e: any) => setNewCategoryForm({ ...newCategoryForm, name: e.target.value })}
+                  required
+                />
+                <Input
+                  label="Category Description"
+                  value={newCategoryForm.description}
+                  onChange={(e: any) => setNewCategoryForm({ ...newCategoryForm, description: e.target.value })}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button type="button" onClick={handleCreateCategory}>Create Category</Button>
+                </div>
+              </div>
+            )}
+          </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <Input label="Price" type="number" step="0.01" min="0.01" value={formData.price} onChange={(e: any) => setFormData({...formData, price: e.target.value})} required />
           <Input label="Stock" type="number" min="0" step="1" value={formData.inventory} onChange={(e: any) => setFormData({...formData, inventory: e.target.value})} required />

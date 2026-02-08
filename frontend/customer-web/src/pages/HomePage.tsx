@@ -11,18 +11,33 @@ interface Product {
   price: number;
   stock?: number;
   imageUrls?: string[];
+  categoryId?: number | null;
+  categoryName?: string | null;
+}
+
+interface Category {
+  id: number;
+  name: string;
 }
 
 interface HomePageProps {
   onAddToCart: (product: Product, quantity?: number) => void;
   cartQuantities: Record<number, number>;
+  selectedCategoryId: number | 'all';
+  onSelectCategory: (categoryId: number | 'all') => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onAddToCart, cartQuantities }) => {
+export const HomePage: React.FC<HomePageProps> = ({
+  onAddToCart,
+  cartQuantities,
+  selectedCategoryId,
+  onSelectCategory
+}) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedImageByProduct, setSelectedImageByProduct] = useState<Record<number, number>>({});
   const [addQtyByProduct, setAddQtyByProduct] = useState<Record<number, number>>({});
+  const [categories, setCategories] = useState<Category[]>([]);
 
   useEffect(() => {
     setLoading(true);
@@ -49,6 +64,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onAddToCart, cartQuantities 
             } else {
                 setProducts([]);
             }
+            const categoryRes = await api.get('/categories');
+            setCategories(Array.isArray(categoryRes.data) ? categoryRes.data : []);
         } catch (e) {
             console.error(e);
         } finally {
@@ -82,12 +99,49 @@ export const HomePage: React.FC<HomePageProps> = ({ onAddToCart, cartQuantities 
       </div>
 
       <h2 style={{ fontSize: '1.875rem', fontWeight: 800, marginBottom: '1rem', color: '#111827' }}>Featured Products</h2>
+      <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', marginBottom: '0.9rem' }}>
+        <button
+          type="button"
+          onClick={() => onSelectCategory('all')}
+          style={{
+            border: selectedCategoryId === 'all' ? '1px solid #111827' : '1px solid #cbd5e1',
+            background: selectedCategoryId === 'all' ? '#111827' : '#fff',
+            color: selectedCategoryId === 'all' ? '#fff' : '#334155',
+            borderRadius: 999,
+            padding: '0.28rem 0.7rem',
+            fontSize: '0.78rem',
+            cursor: 'pointer'
+          }}
+        >
+          All
+        </button>
+        {categories.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            onClick={() => onSelectCategory(category.id)}
+            style={{
+              border: selectedCategoryId === category.id ? '1px solid #111827' : '1px solid #cbd5e1',
+              background: selectedCategoryId === category.id ? '#111827' : '#fff',
+              color: selectedCategoryId === category.id ? '#fff' : '#334155',
+              borderRadius: 999,
+              padding: '0.28rem 0.7rem',
+              fontSize: '0.78rem',
+              cursor: 'pointer'
+            }}
+          >
+            {category.name}
+          </button>
+        ))}
+      </div>
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: '4rem' }}>Loading products...</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-          {products.map(p => {
+          {products
+            .filter((p) => selectedCategoryId === 'all' || p.categoryId === selectedCategoryId)
+            .map(p => {
             const totalStock = p.stock ?? 0;
             const inCart = cartQuantities[p.id] ?? 0;
             const availableStock = Math.max(0, totalStock - inCart);
@@ -135,6 +189,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onAddToCart, cartQuantities 
                   </div>
                 )}
                 <h3 style={{ fontSize: '1rem', lineHeight: 1.4, fontWeight: 600, marginBottom: '0.35rem' }}>{p.name}</h3>
+                <div style={{ fontSize: '0.73rem', color: '#475569', marginBottom: '0.3rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {p.categoryName || 'Uncategorized'}
+                </div>
                 <p style={{ color: '#6b7280', fontSize: '0.82rem', marginBottom: '0.75rem', minHeight: '2.3rem' }}>{p.description}</p>
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                   <span style={{ fontSize: '0.74rem', padding: '0.18rem 0.4rem', borderRadius: '0.3rem', background: '#ef4444', color: '#fff', fontWeight: 700 }}>Deal</span>

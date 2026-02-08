@@ -89,4 +89,33 @@ class UserControllerTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
     }
+
+    @Test
+    void getUserByIdSuccess() throws Exception {
+        com.ecommerce.user.domain.User user = com.ecommerce.user.domain.User.builder()
+                .id(7L)
+                .email("buyer@example.com")
+                .firstName("Buyer")
+                .lastName("One")
+                .role("ROLE_CUSTOMER")
+                .password("encoded")
+                .build();
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+
+        mockMvc.perform(get("/users/7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(7L))
+                .andExpect(jsonPath("$.email").value("buyer@example.com"))
+                .andExpect(jsonPath("$.firstName").value("Buyer"))
+                .andExpect(jsonPath("$.lastName").value("One"));
+    }
+
+    @Test
+    void getUserByIdNotFoundReturnsNotFound() throws Exception {
+        when(userRepository.findById(999L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/users/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found with id: 999"));
+    }
 }

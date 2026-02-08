@@ -5,6 +5,7 @@ import com.ecommerce.order.event.OrderCancelledEvent;
 import com.ecommerce.order.event.OrderCreatedEvent;
 import com.ecommerce.order.event.PaymentFailedEvent;
 import com.ecommerce.order.event.PaymentSuccessEvent;
+import com.ecommerce.order.event.RefundRequestedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,6 +89,7 @@ public class OutboxPublisher {
             case "payment-success" -> objectMapper.readValue(payload, PaymentSuccessEvent.class);
             case "payment-failed" -> objectMapper.readValue(payload, PaymentFailedEvent.class);
             case "inventory-failed" -> objectMapper.readValue(payload, InventoryFailedEvent.class);
+            case "refund-requested" -> objectMapper.readValue(payload, RefundRequestedEvent.class);
             default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
         };
     }

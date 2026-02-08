@@ -14,6 +14,8 @@ public class PaymentProducer {
 
     private static final String TOPIC_PAYMENT_SUCCESS = "payment-success";
     private static final String TOPIC_PAYMENT_FAILED = "payment-failed";
+    private static final String TOPIC_REFUND_SUCCESS = "refund-success";
+    private static final String TOPIC_REFUND_FAILED = "refund-failed";
 
     public void publishPaymentSuccess(Long orderId, String transactionId) {
         PaymentSuccessEvent event = new PaymentSuccessEvent(orderId, transactionId);
@@ -30,6 +32,24 @@ public class PaymentProducer {
                 TOPIC_PAYMENT_FAILED,
                 Objects.requireNonNull(orderId.toString()),
                 TOPIC_PAYMENT_FAILED,
+                event);
+    }
+
+    public void publishRefundSuccess(Long orderId, String transactionId) {
+        RefundSuccessEvent event = new RefundSuccessEvent(orderId, transactionId);
+        outboxService.enqueue(
+                TOPIC_REFUND_SUCCESS,
+                Objects.requireNonNull(orderId.toString()),
+                TOPIC_REFUND_SUCCESS,
+                event);
+    }
+
+    public void publishRefundFailed(Long orderId, String reason) {
+        RefundFailedEvent event = new RefundFailedEvent(orderId, reason);
+        outboxService.enqueue(
+                TOPIC_REFUND_FAILED,
+                Objects.requireNonNull(orderId.toString()),
+                TOPIC_REFUND_FAILED,
                 event);
     }
 }

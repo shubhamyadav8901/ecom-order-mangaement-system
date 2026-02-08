@@ -40,6 +40,23 @@ public class PaymentService {
         return mapToResponse(savedPayment);
     }
 
+    @Transactional
+    public PaymentResponse refundPayment(Long orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for order: " + orderId));
+
+        if ("REFUNDED".equals(payment.getStatus())) {
+            return mapToResponse(payment);
+        }
+
+        if (!"COMPLETED".equals(payment.getStatus())) {
+            throw new RuntimeException("Payment is not refundable in status: " + payment.getStatus());
+        }
+
+        payment.setStatus("REFUNDED");
+        return mapToResponse(paymentRepository.save(payment));
+    }
+
     private PaymentResponse mapToResponse(Payment payment) {
         return new PaymentResponse(
                 payment.getId(),

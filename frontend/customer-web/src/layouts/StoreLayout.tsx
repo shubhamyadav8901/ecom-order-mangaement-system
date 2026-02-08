@@ -1,19 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ShoppingCart, LogOut } from 'lucide-react';
 import { Button } from '@shared/ui/Button';
+import { api } from '../api';
 
 interface StoreLayoutProps {
   children: React.ReactNode;
   currentView: string;
   onNavigate: (view: string) => void;
+  selectedCategoryId: number | 'all';
+  onSelectCategory: (categoryId: number | 'all') => void;
   cartCount: number;
   isLoggedIn: boolean;
   onLogout: () => void;
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 export const StoreLayout: React.FC<StoreLayoutProps> = ({
-  children, currentView, onNavigate, cartCount, isLoggedIn, onLogout
+  children, currentView, onNavigate, selectedCategoryId, onSelectCategory, cartCount, isLoggedIn, onLogout
 }) => {
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await api.get('/categories');
+        const list = Array.isArray(res.data) ? res.data : [];
+        setCategories(list.map((c: any) => ({ id: c.id, name: c.name })).filter((c: Category) => !!c.name));
+      } catch (_e) {
+        setCategories([]);
+      }
+    };
+    loadCategories();
+  }, []);
+
   const navButtonStyle: React.CSSProperties = {
     cursor: 'pointer',
     background: 'none',
@@ -40,7 +63,7 @@ export const StoreLayout: React.FC<StoreLayoutProps> = ({
             <button
                type="button"
                style={{ ...navButtonStyle, fontWeight: currentView === 'catalog' ? 700 : 500 }}
-               onClick={() => onNavigate('catalog')}
+               onClick={() => { onSelectCategory('all'); onNavigate('catalog'); }}
             >
               Shop
             </button>
@@ -86,13 +109,34 @@ export const StoreLayout: React.FC<StoreLayoutProps> = ({
             )}
           </div>
         </div>
-        <div style={{ background: '#232f3e', borderTop: '1px solid #1f2937' }}>
-          <div className="container" style={{ maxWidth: '1320px', margin: '0 auto', padding: '0.5rem 1rem', display: 'flex', gap: '1rem', overflowX: 'auto' }}>
-            {['Top Deals', 'Mobiles', 'Books', 'Electronics', 'Fashion', 'Home & Kitchen'].map((label) => (
-              <span key={label} style={{ color: '#f3f4f6', fontSize: '0.875rem', whiteSpace: 'nowrap' }}>{label}</span>
-            ))}
+        {categories.length > 0 && (
+          <div style={{ background: '#232f3e', borderTop: '1px solid #1f2937' }}>
+            <div className="container" style={{ maxWidth: '1320px', margin: '0 auto', padding: '0.5rem 1rem', display: 'flex', gap: '0.75rem', overflowX: 'auto' }}>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    onSelectCategory(category.id);
+                    onNavigate('catalog');
+                  }}
+                  style={{
+                    ...navButtonStyle,
+                    color: selectedCategoryId === category.id ? '#111827' : '#f3f4f6',
+                    fontSize: '0.82rem',
+                    border: selectedCategoryId === category.id ? '1px solid #facc15' : '1px solid #334155',
+                    background: selectedCategoryId === category.id ? '#facc15' : 'transparent',
+                    borderRadius: '999px',
+                    padding: '0.2rem 0.6rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </nav>
 
       <main style={{ flex: 1, background: '#f1f3f6' }}>

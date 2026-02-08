@@ -10,6 +10,7 @@ import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.event.OrderCancelledEvent;
 import com.ecommerce.order.event.OrderCreatedEvent;
 import com.ecommerce.order.event.OrderItemEvent;
+import com.ecommerce.order.event.RefundRequestedEvent;
 import com.ecommerce.order.outbox.OutboxService;
 import com.ecommerce.order.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ public class OrderService {
 
         private static final String TOPIC_ORDER_CREATED = "order-created";
         private static final String TOPIC_ORDER_CANCELLED = "order-cancelled";
+        private static final String TOPIC_REFUND_REQUESTED = "refund-requested";
 
         @Transactional
         public OrderResponse createOrder(Long userId, OrderRequest request) {
@@ -145,7 +147,12 @@ public class OrderService {
                      throw new RuntimeException("Cannot cancel delivered order");
                 }
 
-                order.setStatus("CANCELLED");
+                if ("REFUND_PENDING".equals(order.getStatus())) {
+                        throw new RuntimeException("Refund is already in progress for this order");
+                }
+
+                boolean refundRequired = "PAID".equals(order.getStatus());
+                order.setStatus(refundRequired ? "REFUND_PENDING" : "CANCELLED");
                 orderRepository.save(order);
 
                 // Publish Event to release stock
@@ -155,6 +162,15 @@ public class OrderService {
                                 Objects.requireNonNull(String.valueOf(orderId)),
                                 TOPIC_ORDER_CANCELLED,
                                 event);
+
+                if (refundRequired) {
+                        RefundRequestedEvent refundRequestedEvent = new RefundRequestedEvent(orderId);
+                        outboxService.enqueue(
+                                        TOPIC_REFUND_REQUESTED,
+                                        Objects.requireNonNull(String.valueOf(orderId)),
+                                        TOPIC_REFUND_REQUESTED,
+                                        refundRequestedEvent);
+                }
         }
 
         private OrderResponse mapToResponse(Order order) {

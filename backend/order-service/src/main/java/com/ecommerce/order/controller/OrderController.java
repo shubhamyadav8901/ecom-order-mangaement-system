@@ -62,7 +62,7 @@ public class OrderController {
     }
 
     @PostMapping("/{id}/cancel")
-    public ResponseEntity<Void> cancelOrder(Authentication authentication, @PathVariable Long id) {
+    public ResponseEntity<Void> cancelOrder(Authentication authentication, @NonNull @PathVariable Long id) {
         boolean admin = isAdmin(authentication);
         Long userId = admin ? null : getUserIdFromAuthentication(authentication);
         orderService.cancelOrder(id, userId, admin);
