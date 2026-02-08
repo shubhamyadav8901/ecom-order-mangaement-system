@@ -42,4 +42,24 @@ public class PaymentConsumer {
             paymentProducer.publishPaymentFailed(event.orderId(), e.getMessage());
         }
     }
+
+    @KafkaListener(topics = "refund-requested", groupId = "payment-group")
+    public void handleRefundRequested(RefundRequestedEvent event) {
+        String eventKey = "refund-requested:" + event.orderId();
+        if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
+            return;
+        }
+
+        try {
+            PaymentResponse response = paymentService.refundPayment(event.orderId());
+            if ("REFUNDED".equals(response.status())) {
+                paymentProducer.publishRefundSuccess(event.orderId(), response.transactionId());
+            } else {
+                paymentProducer.publishRefundFailed(event.orderId(), "Refund status: " + response.status());
+            }
+        } catch (Exception e) {
+            eventDeduplicationService.markFailed(eventKey);
+            paymentProducer.publishRefundFailed(event.orderId(), e.getMessage());
+        }
+    }
 }

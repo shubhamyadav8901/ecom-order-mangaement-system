@@ -23,6 +23,24 @@ const getApiErrorMessage = (err: any, fallback: string): string => {
   return message;
 };
 
+const extractNotFoundProductId = (message: string): number | null => {
+  const match = message.match(/product not found with id[:\s]+(\d+)/i);
+  if (!match?.[1]) {
+    return null;
+  }
+  const id = Number(match[1]);
+  return Number.isNaN(id) ? null : id;
+};
+
+const verifyProductStillExists = async (productId: number): Promise<boolean> => {
+  try {
+    await api.get(`/products/${productId}`);
+    return true;
+  } catch (err: any) {
+    return err?.response?.status !== 404;
+  }
+};
+
 function App() {
   const { addToast } = useToast();
   // Token state only in memory
@@ -30,6 +48,7 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
 
   const [view, setView] = useState('catalog');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -129,14 +148,16 @@ function App() {
     } catch (err: any) {
       console.error(err);
       const message = getApiErrorMessage(err, 'Checkout failed. Please try again.');
-      const productMatch = message.match(/product\s+(\d+)/i);
-      if (productMatch?.[1]) {
-        const staleProductId = Number(productMatch[1]);
-        if (!Number.isNaN(staleProductId)) {
+      const staleProductId = extractNotFoundProductId(message);
+      if (staleProductId !== null) {
+        const stillExists = await verifyProductStillExists(staleProductId);
+        if (!stillExists) {
           setCartItems((prev) => prev.filter((item) => item.product.id !== staleProductId));
           addToast(`Removed unavailable product ${staleProductId} from cart.`, 'error');
-          return;
+        } else {
+          addToast('Checkout failed due to temporary catalog mismatch. Please retry.', 'error');
         }
+        return;
       }
       const status = err?.response?.status;
       if (status === 409) {
@@ -202,6 +223,8 @@ function App() {
     <StoreLayout
       currentView={view}
       onNavigate={setView}
+      selectedCategoryId={selectedCategoryId}
+      onSelectCategory={setSelectedCategoryId}
       cartCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
       isLoggedIn={!!token}
       onLogout={handleLogout}
@@ -209,6 +232,8 @@ function App() {
       {view === 'catalog' && (
         <HomePage
           onAddToCart={addToCart}
+          selectedCategoryId={selectedCategoryId}
+          onSelectCategory={setSelectedCategoryId}
           cartQuantities={cartItems.reduce((acc, item) => {
             acc[item.product.id] = item.quantity;
             return acc;

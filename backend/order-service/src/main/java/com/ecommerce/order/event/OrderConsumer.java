@@ -59,4 +59,32 @@ public class OrderConsumer {
             throw ex;
         }
     }
+
+    @KafkaListener(topics = "refund-success", groupId = "order-group")
+    public void handleRefundSuccess(RefundSuccessEvent event) {
+        String eventKey = "refund-success:" + event.orderId();
+        if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
+            return;
+        }
+        try {
+            orderService.updateOrderStatus(event.orderId(), "CANCELLED");
+        } catch (RuntimeException ex) {
+            eventDeduplicationService.markFailed(eventKey);
+            throw ex;
+        }
+    }
+
+    @KafkaListener(topics = "refund-failed", groupId = "order-group")
+    public void handleRefundFailed(RefundFailedEvent event) {
+        String eventKey = "refund-failed:" + event.orderId();
+        if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
+            return;
+        }
+        try {
+            orderService.updateOrderStatus(event.orderId(), "REFUND_FAILED");
+        } catch (RuntimeException ex) {
+            eventDeduplicationService.markFailed(eventKey);
+            throw ex;
+        }
+    }
 }

@@ -6,9 +6,36 @@ import { Modal } from '@shared/ui/Modal';
 import { useToast } from '@shared/ui/Toast';
 import { api } from '../api';
 
+interface OrderItem {
+  productId: number;
+  quantity: number;
+  price: number;
+}
+
+interface Order {
+  id: number;
+  userId: number;
+  status: string;
+  totalAmount: number;
+  createdAt: string;
+  items: OrderItem[];
+}
+
+interface UserSummary {
+  id: number;
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+}
+
 export const OrderPage: React.FC = () => {
-  const [orders, setOrders] = useState<any[]>([]);
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'ALL' | string>('ALL');
+  const [customerFilter, setCustomerFilter] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
+  const [userById, setUserById] = useState<Record<number, UserSummary>>({});
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -18,8 +45,40 @@ export const OrderPage: React.FC = () => {
   const fetchOrders = async () => {
     try {
       const res = await api.get('/orders');
-      setOrders(res.data);
+      const fetchedOrders: Order[] = Array.isArray(res.data) ? res.data : [];
+      setOrders(fetchedOrders);
+
+      const uniqueUserIds = Array.from(new Set(fetchedOrders.map((order) => order.userId).filter((id) => typeof id === 'number')));
+      if (uniqueUserIds.length === 0) {
+        setUserById({});
+        return;
+      }
+
+      const results = await Promise.allSettled(
+        uniqueUserIds.map(async (userId) => {
+          const userRes = await api.get(`/users/${userId}`);
+          return { userId, data: userRes.data as UserSummary };
+        })
+      );
+
+      const nextMap: Record<number, UserSummary> = {};
+      results.forEach((result, idx) => {
+        const id = uniqueUserIds[idx];
+        if (result.status === 'fulfilled') {
+          nextMap[id] = result.value.data;
+        }
+      });
+      setUserById(nextMap);
     } catch(e) { console.error(e); }
+  };
+
+  const getUserDisplayName = (userId: number) => {
+    const user = userById[userId];
+    if (!user) return `User ${userId}`;
+    const fullName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+    if (fullName) return fullName;
+    if (user.email) return user.email;
+    return `User ${userId}`;
   };
 
   const handleCancel = async () => {
@@ -36,9 +95,96 @@ export const OrderPage: React.FC = () => {
       }
   };
 
+  const statuses = Array.from(new Set(orders.map((order) => order.status))).sort();
+  const visibleOrders = orders.filter((order) => {
+    if (statusFilter !== 'ALL' && order.status !== statusFilter) {
+      return false;
+    }
+
+    const customerQuery = customerFilter.trim().toLowerCase();
+    if (customerQuery) {
+      const user = userById[order.userId];
+      const fullName = `${user?.firstName || ''} ${user?.lastName || ''}`.trim().toLowerCase();
+      const email = (user?.email || '').toLowerCase();
+      const userId = String(order.userId);
+      const haystack = `${fullName} ${email} ${userId}`.trim();
+      if (!haystack.includes(customerQuery)) {
+        return false;
+      }
+    }
+
+    if (fromDate || toDate) {
+      const createdDate = new Date(order.createdAt);
+      if (Number.isNaN(createdDate.getTime())) {
+        return false;
+      }
+      if (fromDate) {
+        const fromBoundary = new Date(`${fromDate}T00:00:00`);
+        if (createdDate < fromBoundary) {
+          return false;
+        }
+      }
+      if (toDate) {
+        const toBoundary = new Date(`${toDate}T23:59:59`);
+        if (createdDate > toBoundary) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
   return (
     <div>
-      <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem' }}>Orders</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Orders</h2>
+        <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}>
+            Customer
+            <input
+              type="text"
+              value={customerFilter}
+              onChange={(e) => setCustomerFilter(e.target.value)}
+              placeholder="Name, email or user id"
+              style={{ height: 34, width: 210, border: '1px solid #d1d5db', borderRadius: 8, padding: '0 0.6rem', background: '#fff' }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}>
+            From
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              style={{ height: 34, border: '1px solid #d1d5db', borderRadius: 8, padding: '0 0.45rem', background: '#fff' }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}>
+            To
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              style={{ height: 34, border: '1px solid #d1d5db', borderRadius: 8, padding: '0 0.45rem', background: '#fff' }}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.9rem' }}>
+            Status
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ height: 34, border: '1px solid #d1d5db', borderRadius: 8, padding: '0 0.6rem', background: '#fff' }}
+            >
+              <option value="ALL">All ({orders.length})</option>
+              {statuses.map((status) => (
+                <option key={status} value={status}>
+                  {status} ({orders.filter((order) => order.status === status).length})
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </div>
       <Card style={{ padding: 0, overflow: 'hidden' }}>
         <table className="table">
           <thead>
@@ -51,29 +197,37 @@ export const OrderPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {orders.map(o => (
+            {visibleOrders.map(o => (
               <tr
                 key={o.id}
-                style={{ borderTop: '1px solid #e5e7eb', transition: 'background-color 0.2s' }}
+                style={{ borderTop: '1px solid #e5e7eb', transition: 'background-color 0.2s', cursor: 'pointer' }}
                 className="hover:bg-gray-50"
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedOrder(o)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedOrder(o);
+                  }
+                }}
               >
                 <td style={{ padding: '1rem' }}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedOrder(o)}
-                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer' }}
-                    aria-label={`Open details for order ${o.id}`}
-                  >
-                    #{o.id}
-                  </button>
+                  #{o.id}
                 </td>
-                <td style={{ padding: '1rem' }}>User {o.userId}</td>
+                <td style={{ padding: '1rem' }}>
+                  <div style={{ fontWeight: 600 }}>{getUserDisplayName(o.userId)}</div>
+                  <div style={{ fontSize: '0.82rem', color: '#64748b' }}>{userById[o.userId]?.email || `user id: ${o.userId}`}</div>
+                </td>
                 <td style={{ padding: '1rem' }}><Badge variant={o.status === 'PAID' ? 'success' : o.status === 'CANCELLED' ? 'danger' : 'info'}>{o.status}</Badge></td>
                 <td style={{ padding: '1rem' }}>${o.totalAmount.toFixed(2)}</td>
                 <td style={{ padding: '1rem' }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'}</td>
               </tr>
             ))}
              {orders.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>No orders found.</td></tr>}
+             {orders.length > 0 && visibleOrders.length === 0 && (
+               <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>No orders match status: {statusFilter}</td></tr>
+             )}
           </tbody>
         </table>
       </Card>
@@ -109,7 +263,7 @@ export const OrderPage: React.FC = () => {
                   </div>
                   <div style={{ borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb', padding: '1rem 0' }}>
                       <h4 style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Items</h4>
-                      {selectedOrder.items && selectedOrder.items.map((item: any, idx: number) => (
+                      {selectedOrder.items && selectedOrder.items.map((item, idx) => (
                           <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.25rem 0' }}>
                               <span>Product {item.productId} (x{item.quantity})</span>
                               <span>${(item.price * item.quantity).toFixed(2)}</span>
