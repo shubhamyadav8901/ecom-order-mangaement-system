@@ -11,7 +11,7 @@ import { Button } from '@shared/ui/Button';
 import { Spinner } from '@shared/ui/Spinner';
 
 interface CartItem {
-  product: { id: number; price: number; stock?: number; [key: string]: any };
+  product: { id: number; price: number; stock?: number; imageUrls?: string[]; [key: string]: any };
   quantity: number;
 }
 
@@ -206,7 +206,15 @@ function App() {
       isLoggedIn={!!token}
       onLogout={handleLogout}
     >
-      {view === 'catalog' && <HomePage onAddToCart={addToCart} />}
+      {view === 'catalog' && (
+        <HomePage
+          onAddToCart={addToCart}
+          cartQuantities={cartItems.reduce((acc, item) => {
+            acc[item.product.id] = item.quantity;
+            return acc;
+          }, {} as Record<number, number>)}
+        />
+      )}
       {view === 'cart' && (
         <CartPage
           items={cartItems}

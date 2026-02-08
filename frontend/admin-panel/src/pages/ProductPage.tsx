@@ -15,6 +15,16 @@ interface Product {
   description: string;
   status: string;
   stock?: number;
+  imageUrls?: string[];
+}
+
+interface ProductFormData {
+  name: string;
+  price: string;
+  description: string;
+  inventory: string;
+  imageUrls: string[];
+  imageUrlInput: string;
 }
 
 export const ProductPage: React.FC = () => {
@@ -22,11 +32,19 @@ export const ProductPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [formData, setFormData] = useState({ name: '', price: '', description: '', inventory: '100' });
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    price: '',
+    description: '',
+    inventory: '100',
+    imageUrls: [],
+    imageUrlInput: ''
+  });
   const { addToast } = useToast();
 
   const [sortField, setSortField] = useState<keyof Product | 'stock'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [selectedImageByProduct, setSelectedImageByProduct] = useState<Record<number, number>>({});
 
   useEffect(() => {
     loadProducts();
@@ -62,6 +80,61 @@ export const ProductPage: React.FC = () => {
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      price: '',
+      description: '',
+      inventory: '100',
+      imageUrls: [],
+      imageUrlInput: ''
+    });
+  };
+
+  const addImageUrl = () => {
+    const candidate = formData.imageUrlInput.trim();
+    if (!candidate) return;
+    if (formData.imageUrls.includes(candidate)) {
+      addToast('Image URL already added', 'info');
+      return;
+    }
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: [...prev.imageUrls, candidate],
+      imageUrlInput: ''
+    }));
+  };
+
+  const removeImageUrl = (url: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((item) => item !== url)
+    }));
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      const fileReads = files.map((file) => new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error(`Failed to read file ${file.name}`));
+        reader.readAsDataURL(file);
+      }));
+      const encodedImages = (await Promise.all(fileReads)).filter(Boolean);
+      setFormData((prev) => ({
+        ...prev,
+        imageUrls: [...new Set([...prev.imageUrls, ...encodedImages])]
+      }));
+    } catch (error) {
+      console.error(error);
+      addToast('Failed to process selected image files', 'error');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const parsedPrice = Number(formData.price);
@@ -84,7 +157,8 @@ export const ProductPage: React.FC = () => {
               name: formData.name,
               description: formData.description,
               price: parsedPrice,
-              status: 'ACTIVE'
+              status: 'ACTIVE',
+              imageUrls: formData.imageUrls
           });
           // Update inventory
           await api.post('/inventory/set', {
@@ -99,7 +173,8 @@ export const ProductPage: React.FC = () => {
             description: formData.description,
             price: parsedPrice,
             sellerId: 1, // Mock
-            status: 'ACTIVE'
+            status: 'ACTIVE',
+            imageUrls: formData.imageUrls
           });
           const product = res.data;
           await api.post('/inventory/add', { productId: product.id, quantity: parsedInventory });
@@ -107,7 +182,7 @@ export const ProductPage: React.FC = () => {
       }
       setIsModalOpen(false);
       setEditingProduct(null);
-      setFormData({ name: '', price: '', description: '', inventory: '100' });
+      resetForm();
       loadProducts();
     } catch(e) {
         console.error(e);
@@ -121,7 +196,9 @@ export const ProductPage: React.FC = () => {
           name: p.name,
           price: p.price.toString(),
           description: p.description,
-          inventory: p.stock?.toString() || '0'
+          inventory: p.stock?.toString() || '0',
+          imageUrls: p.imageUrls || [],
+          imageUrlInput: ''
       });
       setIsModalOpen(true);
   };
@@ -157,7 +234,22 @@ export const ProductPage: React.FC = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
+        <Card style={{ marginBottom: 0, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.75rem', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Total Products</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{products.length}</div>
+        </Card>
+        <Card style={{ marginBottom: 0, background: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+          <div style={{ fontSize: '0.75rem', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em' }}>In Stock</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{products.filter((p) => (p.stock || 0) > 0).length}</div>
+        </Card>
+        <Card style={{ marginBottom: 0, background: '#fff7ed', border: '1px solid #fed7aa' }}>
+          <div style={{ fontSize: '0.75rem', color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Low Stock (&lt; 5)</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{products.filter((p) => (p.stock || 0) > 0 && (p.stock || 0) < 5).length}</div>
+        </Card>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', gap: '0.75rem', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '300px' }}>
           <Search size={16} style={{ position: 'absolute', left: 10, top: 12, color: '#9ca3af' }} />
           <Input
@@ -167,15 +259,16 @@ export const ProductPage: React.FC = () => {
             style={{ paddingLeft: '2.5rem' }}
           />
         </div>
-        <Button onClick={() => { setEditingProduct(null); setFormData({ name: '', price: '', description: '', inventory: '100' }); setIsModalOpen(true); }} icon={<Plus size={16} />}>
+        <Button onClick={() => { setEditingProduct(null); resetForm(); setIsModalOpen(true); }} icon={<Plus size={16} />}>
             Add Product
         </Button>
       </div>
 
-      <Card style={{ padding: 0, overflow: 'hidden' }}>
+      <Card style={{ padding: 0, overflow: 'hidden', border: '1px solid #dbeafe' }}>
         <table className="table">
           <thead>
             <tr>
+              <th style={{ textAlign: 'left', padding: '0.85rem 1rem', width: 96 }}>Image</th>
               <th style={{ textAlign: 'left', padding: '1rem', cursor: 'pointer' }} onClick={() => handleSort('name')}>
                   Name {renderSortIcon('name')}
               </th>
@@ -194,20 +287,63 @@ export const ProductPage: React.FC = () => {
           <tbody>
             {filteredProducts.map(p => (
               <tr key={p.id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                <td style={{ padding: '0.9rem 1rem' }}>
+                  <div style={{ width: '60px', height: '60px', border: '1px solid #e5e7eb', borderRadius: '0.5rem', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                    {p.imageUrls && p.imageUrls.length > 0 ? (
+                      <img
+                        src={p.imageUrls[selectedImageByProduct[p.id] ?? 0] || p.imageUrls[0]}
+                        alt={p.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '0.75rem' }}>No image</span>
+                    )}
+                  </div>
+                  {p.imageUrls && p.imageUrls.length > 1 && (
+                    <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.35rem', overflowX: 'auto', maxWidth: 140 }}>
+                      {p.imageUrls.slice(0, 4).map((url, idx) => (
+                        <button
+                          key={`${p.id}-thumb-${idx}`}
+                          type="button"
+                          onMouseEnter={() => setSelectedImageByProduct((prev) => ({ ...prev, [p.id]: idx }))}
+                          onClick={() => setSelectedImageByProduct((prev) => ({ ...prev, [p.id]: idx }))}
+                          style={{
+                            width: 18,
+                            height: 18,
+                            border: (selectedImageByProduct[p.id] ?? 0) === idx ? '2px solid #2563eb' : '1px solid #cbd5e1',
+                            borderRadius: 4,
+                            padding: 0,
+                            overflow: 'hidden',
+                            cursor: 'pointer',
+                            background: '#fff',
+                            flex: '0 0 auto'
+                          }}
+                          aria-label={`Show image ${idx + 1} for ${p.name}`}
+                        >
+                          <img src={url} alt={`${p.name} ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ fontWeight: 500 }}>{p.name}</div>
+                  <div style={{ fontWeight: 600 }}>{p.name}</div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>{p.description}</div>
                 </td>
-                <td style={{ padding: '1rem' }}>${p.price.toFixed(2)}</td>
-                <td style={{ padding: '1rem' }}>{p.stock}</td>
-                <td style={{ padding: '1rem' }}><Badge variant="success">Active</Badge></td>
+                <td style={{ padding: '1rem', fontWeight: 600 }}>${p.price.toFixed(2)}</td>
+                <td style={{ padding: '1rem', fontWeight: 600 }}>{p.stock}</td>
+                <td style={{ padding: '1rem' }}>
+                  <Badge variant={p.status === 'ACTIVE' ? 'success' : p.status === 'INACTIVE' ? 'warning' : 'danger'}>
+                    {p.status}
+                  </Badge>
+                </td>
                 <td style={{ padding: '1rem', display: 'flex', gap: '0.5rem' }}>
                   <Button variant="ghost" onClick={() => openEdit(p)} icon={<Edit size={16} color="#2563eb" />} />
                   <Button variant="ghost" onClick={() => handleDelete(p.id)} icon={<Trash2 size={16} color="#ef4444" />} />
                 </td>
               </tr>
             ))}
-            {filteredProducts.length === 0 && <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
+            {filteredProducts.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem' }}>No products found.</td></tr>}
           </tbody>
         </table>
       </Card>
@@ -220,6 +356,39 @@ export const ProductPage: React.FC = () => {
           <Input label="Stock" type="number" min="0" step="1" value={formData.inventory} onChange={(e: any) => setFormData({...formData, inventory: e.target.value})} required />
           </div>
           <Input label="Description" value={formData.description} onChange={(e: any) => setFormData({...formData, description: e.target.value})} />
+          <div style={{ border: '1px solid #e5e7eb', borderRadius: '0.5rem', padding: '0.75rem' }}>
+            <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Product Images</div>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <Input
+                placeholder="https://example.com/image.jpg"
+                value={formData.imageUrlInput}
+                onChange={(e: any) => setFormData({ ...formData, imageUrlInput: e.target.value })}
+              />
+              <Button type="button" onClick={addImageUrl}>Add URL</Button>
+            </div>
+            <input type="file" accept="image/*" multiple onChange={handleFileUpload} />
+            {formData.imageUrls.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: '0.5rem', marginTop: '0.75rem' }}>
+                {formData.imageUrls.map((url) => (
+                  <div key={url} style={{ position: 'relative' }}>
+                    <img
+                      src={url}
+                      alt="Product"
+                      style={{ width: '72px', height: '72px', objectFit: 'cover', borderRadius: '0.5rem', border: '1px solid #e5e7eb' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImageUrl(url)}
+                      style={{ position: 'absolute', top: -6, right: -6, border: 'none', width: 18, height: 18, borderRadius: '50%', background: '#ef4444', color: '#fff', cursor: 'pointer', lineHeight: 1 }}
+                      aria-label="Remove image"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1rem' }}>
             <Button type="button" variant="ghost" onClick={() => setIsModalOpen(false)}>Cancel</Button>
             <Button type="submit">{editingProduct ? "Update" : "Create"}</Button>
