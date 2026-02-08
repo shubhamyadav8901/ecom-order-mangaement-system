@@ -23,15 +23,17 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       properties:
-        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.order.event.OrderCreatedEvent
+        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.order.event.OrderCreatedEvent,orderCancelledEvent:com.ecommerce.order.event.OrderCancelledEvent
     consumer:
       group-id: order-group
       auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
-        spring.json.type.mapping: paymentSuccessEvent:com.ecommerce.order.event.PaymentSuccessEvent,paymentFailedEvent:com.ecommerce.order.event.PaymentFailedEvent,inventoryFailedEvent:com.ecommerce.order.event.InventoryFailedEvent
+        spring.json.type.mapping: paymentSuccessEvent:com.ecommerce.order.event.PaymentSuccessEvent,paymentFailedEvent:com.ecommerce.order.event.PaymentFailedEvent,inventoryFailedEvent:com.ecommerce.order.event.InventoryFailedEvent,com.ecommerce.payment.event.PaymentSuccessEvent:com.ecommerce.order.event.PaymentSuccessEvent,com.ecommerce.payment.event.PaymentFailedEvent:com.ecommerce.order.event.PaymentFailedEvent,com.ecommerce.inventory.event.InventoryFailedEvent:com.ecommerce.order.event.InventoryFailedEvent
 
 app:
   jwt:

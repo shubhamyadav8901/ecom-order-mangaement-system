@@ -10,6 +10,17 @@ interface AdminLayoutProps {
 }
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, currentView, onNavigate, onLogout }) => {
+  const navButtonStyle: React.CSSProperties = {
+    width: '100%',
+    textAlign: 'left',
+    background: 'none',
+    border: 'none',
+    color: 'inherit',
+    font: 'inherit',
+    cursor: 'pointer',
+    padding: 0,
+  };
+
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={20} /> },
     { id: 'products', label: 'Products', icon: <Package size={20} /> },
@@ -22,26 +33,39 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, currentView,
         <div className="sidebar-brand">Admin Panel</div>
         <nav style={{ flex: 1 }}>
           {navItems.map(item => (
-            <div
+            <button
+              type="button"
               key={item.id}
-              className={clsx('nav-item', currentView === item.id && 'active')}
+              style={navButtonStyle}
+              aria-current={currentView === item.id ? 'page' : undefined}
+              aria-label={`Go to ${item.label}`}
               onClick={() => onNavigate(item.id)}
+            >
+              <div
+              className={clsx('nav-item', currentView === item.id && 'active')}
               style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
             >
               {item.icon}
               <span>{item.label}</span>
             </div>
+            </button>
           ))}
         </nav>
         <div style={{ padding: '1rem 0' }}>
-            <div
-              className="nav-item"
+            <button
+              type="button"
+              style={navButtonStyle}
+              aria-label="Logout"
               onClick={onLogout}
+            >
+              <div
+              className="nav-item"
               style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#ef4444' }}
             >
                 <LogOut size={20} />
                 <span>Logout</span>
             </div>
+            </button>
         </div>
       </aside>
       <div className="main-content">

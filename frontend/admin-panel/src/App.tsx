@@ -103,9 +103,6 @@ function App() {
             />
             <Button type="submit" style={{ width: '100%' }}>Sign In</Button>
           </form>
-          <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem', color: '#6b7280' }}>
-             Use admin@example.com / password
-          </p>
         </div>
       </div>
     );

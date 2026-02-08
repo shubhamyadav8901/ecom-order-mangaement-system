@@ -56,10 +56,17 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onRetry }) => {
       <h2 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '1.5rem' }}>My Orders</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {orders.map(o => (
-          <div key={o.id} onClick={() => setSelectedOrder(o)} style={{ cursor: 'pointer', transition: 'transform 0.2s' }}>
+          <div key={o.id} style={{ transition: 'transform 0.2s' }}>
             <Card style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>Order #{o.id}</div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedOrder(o)}
+                    style={{ background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', fontWeight: 600 }}
+                    aria-label={`Open details for order ${o.id}`}
+                  >
+                    Order #{o.id}
+                  </button>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                     {o.createdAt ? new Date(o.createdAt).toLocaleDateString() : 'N/A'}
                   </div>
