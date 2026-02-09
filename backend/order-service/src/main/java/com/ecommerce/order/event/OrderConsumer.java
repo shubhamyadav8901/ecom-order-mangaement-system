@@ -2,12 +2,15 @@ package com.ecommerce.order.event;
 
 import com.ecommerce.order.service.OrderService;
 import com.ecommerce.order.service.EventDeduplicationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class OrderConsumer {
+    private static final Logger logger = LoggerFactory.getLogger(OrderConsumer.class);
 
     @Autowired
     private OrderService orderService;
@@ -22,7 +25,7 @@ public class OrderConsumer {
             return;
         }
         try {
-            System.out.println("Order Service received Payment Success: " + event.orderId());
+            logger.info("Order service received payment-success for order {}", event.orderId());
             orderService.markPaid(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
@@ -37,7 +40,7 @@ public class OrderConsumer {
             return;
         }
         try {
-            System.out.println("Order Service received Payment Failed: " + event.orderId());
+            logger.info("Order service received payment-failed for order {}", event.orderId());
             orderService.cancelAfterPaymentFailure(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
@@ -52,7 +55,7 @@ public class OrderConsumer {
             return;
         }
         try {
-            System.out.println("Order Service received Inventory Failed: " + event.orderId());
+            logger.info("Order service received inventory-failed for order {}", event.orderId());
             orderService.cancelAfterInventoryFailure(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
