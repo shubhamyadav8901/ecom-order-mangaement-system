@@ -27,15 +27,15 @@ public class InventoryConsumer {
         if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
             return;
         }
-        System.out.println("Inventory Service received Order Created: " + event.orderId());
+        logger.info("Inventory service received order-created for order {}", event.orderId());
 
         try {
             inventoryService.reserveOrderItems(event.orderId(), event.items());
             inventoryProducer.publishInventoryReserved(event.orderId(), event.totalAmount());
-            System.out.println("Stock reserved for order: " + event.orderId());
+            logger.info("Inventory reserved for order {}", event.orderId());
         } catch (Exception e) {
             eventDeduplicationService.markFailed(eventKey);
-            System.err.println("Failed to reserve stock: " + e.getMessage());
+            logger.error("Failed to reserve stock for order {}", event.orderId(), e);
             inventoryProducer.publishInventoryFailed(event.orderId(), e.getMessage());
         }
     }
@@ -52,13 +52,13 @@ public class InventoryConsumer {
         if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
             return;
         }
-        System.out.println("Inventory Service received compensation event for order: " + orderId);
+        logger.info("Inventory service received compensation event {} for order {}", record.topic(), orderId);
         try {
             inventoryService.releaseReservation(orderId);
-            System.out.println("Stock released for order: " + orderId);
+            logger.info("Inventory released for order {}", orderId);
         } catch (Exception e) {
             eventDeduplicationService.markFailed(eventKey);
-            System.err.println("Failed to release stock: " + e.getMessage());
+            logger.error("Failed to release inventory for order {}", orderId, e);
         }
     }
 

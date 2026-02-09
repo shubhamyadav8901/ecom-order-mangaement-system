@@ -4,12 +4,15 @@ import com.ecommerce.payment.dto.PaymentRequest;
 import com.ecommerce.payment.dto.PaymentResponse;
 import com.ecommerce.payment.service.EventDeduplicationService;
 import com.ecommerce.payment.service.PaymentService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 @Component
 public class PaymentConsumer {
+    private static final Logger logger = LoggerFactory.getLogger(PaymentConsumer.class);
 
     @Autowired
     private PaymentService paymentService;
@@ -26,7 +29,7 @@ public class PaymentConsumer {
         if (!eventDeduplicationService.tryStartProcessing(eventKey)) {
             return;
         }
-        System.out.println("Payment Service received Inventory Reserved: " + event.orderId());
+        logger.info("Payment service received inventory-reserved for order {}", event.orderId());
 
         try {
             PaymentResponse response = paymentService.initiatePayment(new PaymentRequest(event.orderId(), event.totalAmount(), "CREDIT_CARD"));
@@ -38,7 +41,7 @@ public class PaymentConsumer {
             }
         } catch (Exception e) {
             eventDeduplicationService.markFailed(eventKey);
-            System.err.println("Payment processing failed: " + e.getMessage());
+            logger.error("Payment processing failed for order {}", event.orderId(), e);
             paymentProducer.publishPaymentFailed(event.orderId(), e.getMessage());
         }
     }
@@ -59,6 +62,7 @@ public class PaymentConsumer {
             }
         } catch (Exception e) {
             eventDeduplicationService.markFailed(eventKey);
+            logger.error("Refund processing failed for order {}", event.orderId(), e);
             paymentProducer.publishRefundFailed(event.orderId(), e.getMessage());
         }
     }
