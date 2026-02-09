@@ -3,6 +3,7 @@ package com.ecommerce.common.security;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -32,6 +33,13 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/actuator/**", "/swagger-ui/**", "/v3/api-docs/**", "/swagger-resources/**", "/webjars/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/products/**", "/categories/**").authenticated()
+                .requestMatchers("/products/**", "/categories/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/users/me").authenticated()
+                .requestMatchers("/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/inventory/batch").authenticated()
+                .requestMatchers("/inventory/**").hasRole("ADMIN")
+                .requestMatchers("/payments/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             );
 
