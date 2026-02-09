@@ -9,6 +9,7 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  status?: string;
   stock?: number;
   imageUrls?: string[];
   categoryId?: number | null;
@@ -75,6 +76,12 @@ export const HomePage: React.FC<HomePageProps> = ({
     fetchData();
   }, []);
 
+  const visibleProducts = products.filter((product) => {
+    const matchesCategory = selectedCategoryId === 'all' || product.categoryId === selectedCategoryId;
+    const isActive = (product.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE';
+    return matchesCategory && isActive;
+  });
+
   return (
     <div>
       <div style={{
@@ -139,9 +146,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         <div style={{ textAlign: 'center', padding: '4rem' }}>Loading products...</div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
-          {products
-            .filter((p) => selectedCategoryId === 'all' || p.categoryId === selectedCategoryId)
-            .map(p => {
+          {visibleProducts.map(p => {
             const totalStock = p.stock ?? 0;
             const inCart = cartQuantities[p.id] ?? 0;
             const availableStock = Math.max(0, totalStock - inCart);

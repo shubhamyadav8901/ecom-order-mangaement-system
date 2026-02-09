@@ -15,6 +15,9 @@ interface CartItem {
   quantity: number;
 }
 
+const isActiveProduct = (product: { status?: string } | null | undefined): boolean =>
+  ((product?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE');
+
 const getApiErrorMessage = (err: any, fallback: string): string => {
   const message = err?.response?.data?.message || err?.response?.data?.error || err?.message;
   if (!message || typeof message !== 'string') {
@@ -262,7 +265,7 @@ function App() {
              let addedCount = 0;
              items.forEach(item => {
                  const product = allProducts.find((p: any) => p.id === item.productId);
-                 if (product) {
+                 if (product && isActiveProduct(product)) {
                      const stock = stockMap[product.id] || 0;
                      if (stock > 0) {
                          const existingQty = cartItems.find(ci => ci.product.id === product.id)?.quantity || 0;
