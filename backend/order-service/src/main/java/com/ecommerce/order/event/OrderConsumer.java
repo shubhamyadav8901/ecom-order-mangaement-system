@@ -23,7 +23,7 @@ public class OrderConsumer {
         }
         try {
             System.out.println("Order Service received Payment Success: " + event.orderId());
-            orderService.updateOrderStatus(event.orderId(), "PAID");
+            orderService.markPaid(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
             throw ex;
@@ -38,7 +38,7 @@ public class OrderConsumer {
         }
         try {
             System.out.println("Order Service received Payment Failed: " + event.orderId());
-            orderService.updateOrderStatus(event.orderId(), "CANCELLED");
+            orderService.cancelAfterPaymentFailure(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
             throw ex;
@@ -53,7 +53,7 @@ public class OrderConsumer {
         }
         try {
             System.out.println("Order Service received Inventory Failed: " + event.orderId());
-            orderService.updateOrderStatus(event.orderId(), "CANCELLED");
+            orderService.cancelAfterInventoryFailure(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
             throw ex;
@@ -67,7 +67,7 @@ public class OrderConsumer {
             return;
         }
         try {
-            orderService.updateOrderStatus(event.orderId(), "CANCELLED");
+            orderService.markRefundCompleted(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
             throw ex;
@@ -81,7 +81,7 @@ public class OrderConsumer {
             return;
         }
         try {
-            orderService.updateOrderStatus(event.orderId(), "REFUND_FAILED");
+            orderService.markRefundFailed(event.orderId());
         } catch (RuntimeException ex) {
             eventDeduplicationService.markFailed(eventKey);
             throw ex;
