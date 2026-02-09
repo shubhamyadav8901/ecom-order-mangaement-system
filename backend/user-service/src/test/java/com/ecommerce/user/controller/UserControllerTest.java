@@ -75,7 +75,7 @@ class UserControllerTest {
     }
 
     @Test
-    void getCurrentUserUserNotFoundReturnsInternalServerError() throws Exception {
+    void getCurrentUserUserNotFoundReturnsNotFound() throws Exception {
         UserDetails principal = User.withUsername("missing@example.com")
                 .password("ignored")
                 .roles("CUSTOMER")
@@ -86,8 +86,8 @@ class UserControllerTest {
         when(userRepository.findByEmail("missing@example.com")).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/users/me"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("User not found"));
     }
 
     @Test

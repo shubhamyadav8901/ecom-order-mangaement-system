@@ -1,5 +1,6 @@
 package com.ecommerce.user.service;
 
+import com.ecommerce.common.exception.ResourceConflictException;
 import com.ecommerce.user.domain.RefreshToken;
 import com.ecommerce.user.domain.User;
 import com.ecommerce.user.dto.AuthResponse;
@@ -12,6 +13,7 @@ import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,7 +46,7 @@ public class AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("Email already in use");
+            throw new ResourceConflictException("Email already in use");
         }
 
         User user = Objects.requireNonNull(
@@ -68,7 +70,8 @@ public class AuthService {
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        User user = userRepository.findByEmail(request.email()).orElseThrow();
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new BadCredentialsException("Invalid credentials"));
         // Assuming role is simple string in DB, usually it's "ROLE_USER"
         String jwt = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
         RefreshToken refreshToken = createRefreshToken(user);
@@ -85,7 +88,7 @@ public class AuthService {
                     String token = tokenProvider.generateToken(user.getId(), user.getEmail(), user.getRole());
                     return new AuthResponse(token, request.refreshToken());
                 })
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+                .orElseThrow(() -> new BadCredentialsException("Refresh token is not valid"));
     }
 
     private RefreshToken createRefreshToken(User user) {
@@ -104,7 +107,7 @@ public class AuthService {
     private RefreshToken verifyExpiration(RefreshToken token) {
         if (token.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
             refreshTokenRepository.delete(token);
-            throw new RuntimeException("Refresh token was expired. Please make a new signin request");
+            throw new BadCredentialsException("Refresh token was expired. Please sign in again");
         }
         return token;
     }

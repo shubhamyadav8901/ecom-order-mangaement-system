@@ -1,6 +1,7 @@
 package com.ecommerce.user.controller;
 
 import com.ecommerce.common.exception.GlobalExceptionHandler;
+import com.ecommerce.common.exception.ResourceConflictException;
 import com.ecommerce.user.dto.AuthResponse;
 import com.ecommerce.user.dto.LoginRequest;
 import com.ecommerce.user.dto.RefreshTokenRequest;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -62,15 +64,15 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerDuplicateEmailReturnsInternalServerError() throws Exception {
-        when(authService.register(any(RegisterRequest.class))).thenThrow(new RuntimeException("Email already in use"));
+    void registerDuplicateEmailReturnsConflict() throws Exception {
+        when(authService.register(any(RegisterRequest.class))).thenThrow(new ResourceConflictException("Email already in use"));
 
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new RegisterRequest("existing@example.com", "Password123!", "Exists", "User"))))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Email already in use"));
     }
 
     @Test
@@ -108,15 +110,15 @@ class AuthControllerTest {
     }
 
     @Test
-    void loginInvalidCredentialsReturnsInternalServerError() throws Exception {
-        when(authService.login(any(LoginRequest.class))).thenThrow(new RuntimeException("Bad credentials"));
+    void loginInvalidCredentialsReturnsUnauthorized() throws Exception {
+        when(authService.login(any(LoginRequest.class))).thenThrow(new BadCredentialsException("Bad credentials"));
 
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new LoginRequest("user@example.com", "wrong"))))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Bad credentials"));
     }
 
     @Test
