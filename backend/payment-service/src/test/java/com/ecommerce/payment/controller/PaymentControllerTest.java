@@ -69,13 +69,11 @@ class PaymentControllerTest {
     }
 
     @Test
-    void initiatePaymentInvalidAmountReturnsInternalServerError() throws Exception {
-        when(paymentService.initiatePayment(any(PaymentRequest.class))).thenThrow(new RuntimeException("Invalid amount"));
-
+    void initiatePaymentInvalidAmountReturnsBadRequest() throws Exception {
         mockMvc.perform(post("/payments/initiate")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"orderId\":100,\"amount\":-1,\"paymentMethod\":\"CARD\"}"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("An unexpected error occurred"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("VALIDATION_ERROR"));
     }
 }

@@ -4,6 +4,7 @@ import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.common.security.CustomPrincipal;
 import com.ecommerce.order.service.OrderService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
@@ -22,7 +23,7 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(Authentication authentication, @RequestBody OrderRequest request) {
+    public ResponseEntity<OrderResponse> createOrder(Authentication authentication, @Valid @RequestBody OrderRequest request) {
         Long userId = getUserIdFromAuthentication(authentication);
         return ResponseEntity.ok(orderService.createOrder(userId, request));
     }
