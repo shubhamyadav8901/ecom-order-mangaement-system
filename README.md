@@ -20,7 +20,7 @@ For detailed architecture and design, see [docs/architecture.md](docs/architectu
 
 ## 🏗 High-Level Architecture
 
-* **Modular Monolith**: Services are separated by modules but share a repo for easier development.
+* **Multi-Service Monorepo**: Services run independently but share one repository for cohesive development and testing.
 * **Event-Driven**: Uses **Kafka** for the Order Saga pattern (Order -> Inventory -> Payment).
 * **API Gateway**: **Nginx** routes traffic to backend services and frontend apps.
 * **Frontend**: React + TypeScript (Vite).
@@ -37,7 +37,7 @@ Ensure you have the following installed:
 *   **Java 17+** (`java -version`)
 *   **Maven** (`mvn -version`)
 *   **Node.js 18+** (`node -v`)
-*   **Docker** & **Docker Compose** (`docker-compose -v`)
+*   **Docker** & **Docker Compose** (`docker compose version` or `docker-compose -v`)
 
 ### 1️⃣ Start Infrastructure
 
@@ -50,7 +50,7 @@ Start the databases (Postgres), Message Broker (Kafka), Cache (Redis), and API G
     ```
 3.  Start the containers in the background:
     ```bash
-    docker-compose up -d
+    docker compose up -d
     ```
 4.  Verify they are running:
     ```bash
@@ -155,7 +155,7 @@ Each service exposes API docs. Access them directly:
 3.  Stop the infrastructure:
     ```bash
     cd infra/docker
-    docker-compose down
+    docker compose down
     ```
 
 ---
@@ -164,7 +164,7 @@ Each service exposes API docs. Access them directly:
 
 * `backend/`: Java/Spring Boot services (User, Product, Inventory, Order, Payment)
 * `frontend/`: React applications (Customer, Admin)
-* `infra/`: Infrastructure configuration (Docker, Kafka, Nginx, Terraform)
+* `infra/`: Infrastructure configuration (Docker Compose, PostgreSQL/Kafka wiring, Nginx)
 * `docs/`: Design and Architecture documentation
 
 ---
