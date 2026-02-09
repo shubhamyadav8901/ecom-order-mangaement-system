@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
@@ -32,7 +33,7 @@ public class OrderController {
         if (authentication.getPrincipal() instanceof CustomPrincipal) {
             return ((CustomPrincipal) authentication.getPrincipal()).getUserId();
         }
-        throw new RuntimeException("Invalid User Principal");
+        throw new BadCredentialsException("Invalid user principal");
     }
 
     @GetMapping("/{id}")
