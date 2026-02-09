@@ -11,7 +11,6 @@ interface AdminLayoutProps {
 
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, currentView, onNavigate, onLogout }) => {
   const navButtonStyle: React.CSSProperties = {
-    width: '100%',
     textAlign: 'left',
     background: 'none',
     border: 'none',
@@ -36,6 +35,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, currentView,
             <button
               type="button"
               key={item.id}
+              className="nav-button"
               style={navButtonStyle}
               aria-current={currentView === item.id ? 'page' : undefined}
               aria-label={`Go to ${item.label}`}
@@ -54,6 +54,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, currentView,
         <div style={{ padding: '1rem 0' }}>
             <button
               type="button"
+              className="nav-button"
               style={navButtonStyle}
               aria-label="Logout"
               onClick={onLogout}
