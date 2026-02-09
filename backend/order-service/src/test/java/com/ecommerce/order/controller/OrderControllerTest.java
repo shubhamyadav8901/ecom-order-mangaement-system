@@ -70,13 +70,14 @@ class OrderControllerTest {
     }
 
     @Test
-    void createOrderInvalidPrincipalReturnsInternalServerError() throws Exception {
+    void createOrderInvalidPrincipalReturnsUnauthorized() throws Exception {
         mockMvc.perform(post("/orders")
                         .principal(new UsernamePasswordAuthenticationToken("plain-user", null, List.of()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(
                                 new OrderRequest(List.of(new OrderItemRequest(5L, 1, new BigDecimal("19.99")))))))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid user principal"));
     }
 
     @Test
