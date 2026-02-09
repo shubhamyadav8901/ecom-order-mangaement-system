@@ -54,20 +54,18 @@ export const OrderPage: React.FC = () => {
         return;
       }
 
-      const results = await Promise.allSettled(
-        uniqueUserIds.map(async (userId) => {
-          const userRes = await api.get(`/users/${userId}`);
-          return { userId, data: userRes.data as UserSummary };
-        })
-      );
-
       const nextMap: Record<number, UserSummary> = {};
-      results.forEach((result, idx) => {
-        const id = uniqueUserIds[idx];
-        if (result.status === 'fulfilled') {
-          nextMap[id] = result.value.data;
-        }
-      });
+      try {
+        const usersRes = await api.post('/users/batch', uniqueUserIds);
+        const users = Array.isArray(usersRes.data) ? usersRes.data : [];
+        users.forEach((user: UserSummary) => {
+          if (typeof user.id === 'number') {
+            nextMap[user.id] = user;
+          }
+        });
+      } catch {
+        // Keep fallback placeholders when user details lookup fails.
+      }
       setUserById(nextMap);
     } catch(e) { console.error(e); }
   };
