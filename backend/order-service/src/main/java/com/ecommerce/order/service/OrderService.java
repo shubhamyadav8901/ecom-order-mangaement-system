@@ -13,6 +13,8 @@ import com.ecommerce.order.event.OrderItemEvent;
 import com.ecommerce.order.event.RefundRequestedEvent;
 import com.ecommerce.order.outbox.OutboxService;
 import com.ecommerce.order.repository.OrderRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.NonNull;
 import org.springframework.security.access.AccessDeniedException;
@@ -28,6 +30,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class OrderService {
+
+        private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
         @Autowired
         private OrderRepository orderRepository;
@@ -123,10 +127,77 @@ public class OrderService {
         }
 
         @Transactional
-        public void updateOrderStatus(@NonNull Long orderId, String status) {
+        public void markPaid(@NonNull Long orderId) {
                 Order order = orderRepository.findById(orderId)
                                 .orElseThrow(() -> new RuntimeException("Order not found"));
-                order.setStatus(status);
+
+                String currentStatus = order.getStatus();
+                if (!List.of("CREATED", "PLACED", "PAYMENT_PENDING").contains(currentStatus)) {
+                        logIgnoredTransition(orderId, currentStatus, "PAID");
+                        return;
+                }
+
+                order.setStatus("PAID");
+                orderRepository.save(order);
+        }
+
+        @Transactional
+        public void cancelAfterPaymentFailure(@NonNull Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+                String currentStatus = order.getStatus();
+                if (!List.of("CREATED", "PLACED", "PAYMENT_PENDING").contains(currentStatus)) {
+                        logIgnoredTransition(orderId, currentStatus, "CANCELLED");
+                        return;
+                }
+
+                order.setStatus("CANCELLED");
+                orderRepository.save(order);
+        }
+
+        @Transactional
+        public void cancelAfterInventoryFailure(@NonNull Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+                String currentStatus = order.getStatus();
+                if (!List.of("CREATED", "PLACED", "PAYMENT_PENDING").contains(currentStatus)) {
+                        logIgnoredTransition(orderId, currentStatus, "CANCELLED");
+                        return;
+                }
+
+                order.setStatus("CANCELLED");
+                orderRepository.save(order);
+        }
+
+        @Transactional
+        public void markRefundCompleted(@NonNull Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+                String currentStatus = order.getStatus();
+                if (!"REFUND_PENDING".equals(currentStatus)) {
+                        logIgnoredTransition(orderId, currentStatus, "CANCELLED");
+                        return;
+                }
+
+                order.setStatus("CANCELLED");
+                orderRepository.save(order);
+        }
+
+        @Transactional
+        public void markRefundFailed(@NonNull Long orderId) {
+                Order order = orderRepository.findById(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+                String currentStatus = order.getStatus();
+                if (!"REFUND_PENDING".equals(currentStatus)) {
+                        logIgnoredTransition(orderId, currentStatus, "REFUND_FAILED");
+                        return;
+                }
+
+                order.setStatus("REFUND_FAILED");
                 orderRepository.save(order);
         }
 
@@ -184,5 +255,9 @@ public class OrderService {
                                                                 i.getProductId(), i.getQuantity(), i.getPrice()))
                                                 .collect(Collectors.toList()),
                                 order.getCreatedAt());
+        }
+
+        private void logIgnoredTransition(Long orderId, String fromStatus, String toStatus) {
+                logger.info("Ignoring stale status transition for order {} from {} to {}", orderId, fromStatus, toStatus);
         }
 }

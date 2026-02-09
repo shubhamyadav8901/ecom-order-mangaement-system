@@ -56,6 +56,36 @@ class OrderServiceTest {
         verify(outboxService, never()).enqueue(eq("refund-requested"), eq("11"), eq("refund-requested"), any(RefundRequestedEvent.class));
     }
 
+    @Test
+    void markPaidIgnoresStaleTransitionFromCancelled() {
+        Order order = sampleOrder(12L, 22L, "CANCELLED");
+        when(orderRepository.findById(12L)).thenReturn(Optional.of(order));
+
+        orderService.markPaid(12L);
+
+        verify(orderRepository, never()).save(order);
+    }
+
+    @Test
+    void markRefundCompletedUpdatesOnlyRefundPending() {
+        Order order = sampleOrder(13L, 23L, "REFUND_PENDING");
+        when(orderRepository.findById(13L)).thenReturn(Optional.of(order));
+
+        orderService.markRefundCompleted(13L);
+
+        verify(orderRepository).save(order);
+    }
+
+    @Test
+    void markRefundFailedIgnoresNonRefundPending() {
+        Order order = sampleOrder(14L, 24L, "CANCELLED");
+        when(orderRepository.findById(14L)).thenReturn(Optional.of(order));
+
+        orderService.markRefundFailed(14L);
+
+        verify(orderRepository, never()).save(order);
+    }
+
     private Order sampleOrder(Long orderId, Long userId, String status) {
         Order order = new Order();
         order.setId(orderId);
