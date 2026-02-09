@@ -32,9 +32,6 @@ public class HttpClientConfig {
             return null;
         }
         HttpServletRequest currentRequest = servletRequestAttributes.getRequest();
-        if (currentRequest == null) {
-            return null;
-        }
         return currentRequest.getHeader(HttpHeaders.AUTHORIZATION);
     }
 }

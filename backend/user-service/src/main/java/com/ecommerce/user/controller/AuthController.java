@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@SuppressWarnings("null")
 public class AuthController {
 
     @Autowired

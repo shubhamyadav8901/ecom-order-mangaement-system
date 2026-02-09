@@ -19,6 +19,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = "spring.task.scheduling.enabled=false")
+@SuppressWarnings("null")
 class OutboxPublisherIntegrationTest {
 
     @Autowired

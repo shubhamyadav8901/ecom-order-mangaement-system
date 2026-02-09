@@ -19,6 +19,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/users")
+@SuppressWarnings("null")
 public class UserController {
 
     @Autowired

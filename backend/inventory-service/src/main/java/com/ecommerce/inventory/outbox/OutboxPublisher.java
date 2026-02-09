@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
+@SuppressWarnings("null")
 public class OutboxPublisher {
 
     @Autowired
