@@ -1,10 +1,10 @@
 # E-Commerce Order Management System - Resume Points
 
 ## 🚀 Architecture & System Design
-*   Designed and implemented a **Modular Monolith** architecture for an E-Commerce backend, capable of scaling to microservices, handling **Order Management, Inventory, Products, and Payments**.
+*   Designed and implemented a **microservice-oriented modular monorepo** architecture for an e-commerce platform, with independently runnable services for **Order, Inventory, Product, User, and Payment** domains.
 *   Built a **Distributed Event-Driven Architecture** using **Kafka** to orchestrate complex Saga patterns for order fulfillment, ensuring consistency across services without distributed transactions (2PC).
 *   Engineered **Stateless Authentication** across microservices using centralized **JWT** logic, enabling secure inter-service communication and scalable user session management.
-*   Deployed a containerized infrastructure using **Docker Compose**, orchestrating **PostgreSQL** (sharded by service domain), **Kafka**, **Zookeeper**, and **Redis** for a production-like development environment.
+*   Deployed a containerized infrastructure using **Docker Compose**, orchestrating **PostgreSQL** (database-per-service), **Kafka**, **Zookeeper**, and **Redis** for a production-like development environment.
 *   Implemented an **Nginx API Gateway** to unify frontend-backend communication, handling reverse proxying and solving CORS issues for a multi-service architecture.
 
 ## 🛠️ Backend Engineering (Java/Spring Boot)
@@ -16,7 +16,7 @@
 
 ## ⚛️ Frontend Development (React)
 *   Built two separate **React** applications (**Customer Web** & **Admin Panel**) using **Vite** and **TypeScript**, demonstrating full-stack capability.
-*   Implemented secure authentication flows in the frontend, managing **JWT tokens** in local storage and creating reusable API interceptors for authenticated requests.
+*   Implemented secure authentication flows in the frontend using **in-memory access tokens** with **HttpOnly refresh-token cookies**, along with reusable authenticated API interceptors.
 *   Developed a dynamic **Product Management Dashboard** for admins to manage catalog and inventory in real-time.
 *   Created a seamless **Shopping Cart & Checkout** experience for customers, integrating directly with the backend Order Service.
 
