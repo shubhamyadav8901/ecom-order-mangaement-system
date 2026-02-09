@@ -18,6 +18,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
+@SuppressWarnings("null")
 public class OrderController {
 
     @Autowired

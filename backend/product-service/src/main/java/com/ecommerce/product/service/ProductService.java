@@ -19,6 +19,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@SuppressWarnings("null")
 public class ProductService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProductService.class);
