@@ -19,7 +19,16 @@ public class PaymentService {
 
     @Transactional
     public PaymentResponse initiatePayment(PaymentRequest request) {
-        // Idempotency check could go here
+        Payment existingPayment = paymentRepository.findByOrderId(request.orderId()).orElse(null);
+        if (existingPayment != null) {
+            if ("COMPLETED".equals(existingPayment.getStatus()) || "REFUNDED".equals(existingPayment.getStatus())) {
+                return mapToResponse(existingPayment);
+            }
+
+            existingPayment.setAmount(request.amount());
+            existingPayment.setPaymentMethod(request.paymentMethod());
+            return completePayment(existingPayment);
+        }
 
         Payment payment = Objects.requireNonNull(
                 Payment.builder()
@@ -30,14 +39,7 @@ public class PaymentService {
                         .transactionId(UUID.randomUUID().toString()) // Simulate Gateway ID
                         .build());
 
-        Payment savedPayment = paymentRepository.save(payment);
-
-        // In a real flow, we might wait for webhook or process async.
-        // For simulation, let's auto-complete it successfully.
-        savedPayment.setStatus("COMPLETED");
-        savedPayment = paymentRepository.save(savedPayment);
-
-        return mapToResponse(savedPayment);
+        return completePayment(paymentRepository.save(payment));
     }
 
     @Transactional
@@ -65,5 +67,13 @@ public class PaymentService {
                 payment.getAmount(),
                 payment.getStatus(),
                 payment.getCreatedAt());
+    }
+
+    private PaymentResponse completePayment(Payment payment) {
+        if (payment.getTransactionId() == null || payment.getTransactionId().isBlank()) {
+            payment.setTransactionId(UUID.randomUUID().toString());
+        }
+        payment.setStatus("COMPLETED");
+        return mapToResponse(paymentRepository.save(payment));
     }
 }
