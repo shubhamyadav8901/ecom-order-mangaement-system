@@ -1,35 +1,71 @@
-# Security Policy
+# Security Policy (Latest)
 
-## Authentication Architecture
-The system uses **stateless authentication** via **JSON Web Tokens (JWT)**.
+## 1. Authentication
 
-1.  **Login**: Users exchange credentials (email/password) for a short-lived `access_token` and a long-lived `refresh_token`.
-2.  **Requests**: Clients must send the `access_token` in the `Authorization` header: `Bearer <token>`.
-3.  **Verification**: Each service independently validates the JWT signature and expiration using a shared secret key (configured in `common-lib`).
+- Stateless JWT auth for API calls.
+- Access token is supplied via `Authorization: Bearer <token>`.
+- Login/refresh flow uses HttpOnly refresh cookie (`refresh_token`).
+- JWT parsing and principal population are handled by shared `JwtAuthenticationFilter` in `common-lib`.
 
-## Authorization (RBAC)
-Roles are embedded in the JWT claims and enforced at the endpoint level using Spring Security annotations (`@PreAuthorize`).
+## 2. Roles
 
-| Role | Access Level |
-| :--- | :--- |
-| **ROLE_USER** | Can browse products, place orders, and view their own order history. |
-| **ROLE_ADMIN** | Can create/delete products, view all orders, and manage inventory. |
+- `ROLE_CUSTOMER`
+- `ROLE_ADMIN`
 
-## Network Security
-*   **API Gateway**: Nginx acts as the single entry point (Port 80), proxying requests to internal services (Ports 8081-8085).
-*   **Internal Communication**: Services communicate directly or via Kafka. In a production environment, internal ports should not be exposed publicly.
-*   **CORS**: Configured to allow requests from the Frontend applications (Customer Web and Admin Panel).
+`ROLE_CUSTOMER` is default on registration.
 
-## Public vs. Protected Endpoints
-*   **Public**:
-    *   `/api/auth/**` (Login, Register)
-    *   `/api/products` (GET - View Catalog)
-    *   `/swagger-ui/**` (API Documentation)
-*   **Protected**:
-    *   `/api/orders/**` (Requires Auth)
-    *   `/api/products` (POST/DELETE - Requires Admin)
-    *   `/api/inventory/**` (Requires Admin)
+## 3. Route Authorization Matrix
 
-## Data Security
-*   **Passwords**: Hashed using **BCrypt** before storage in `user-service`.
-*   **Prices**: (Future Improvement) Order prices must be validated against the backend database rather than trusting the frontend payload.
+Based on current shared `SecurityConfig`:
+
+### Public
+- `/auth/**`
+- `/actuator/**`
+- `/swagger-ui/**`
+- `/v3/api-docs/**`
+- `/swagger-resources/**`
+- `/webjars/**`
+- `GET /products/**`
+- `GET /categories/**`
+
+### Authenticated (any role)
+- `GET /users/me`
+- `POST /inventory/batch`
+- all other non-overridden routes default to authenticated
+
+### Admin only
+- Non-GET `/products/**`
+- Non-GET `/categories/**`
+- `/users/**` (except `/users/me`)
+- `/inventory/**` (except `/inventory/batch`)
+- `/payments/**`
+
+### Endpoint-level constraints in controllers
+- Order routes are authenticated by security config.
+- Additional ownership/admin checks are enforced in `OrderController`/`OrderService` for:
+  - `/orders`
+  - `/orders/{id}`
+  - `/orders/my-orders`
+  - `/orders/user/{userId}`
+  - `/orders/{id}/cancel`
+
+## 4. Cookie Security
+
+Refresh cookie settings from auth controller:
+- `HttpOnly=true`
+- `SameSite=Strict`
+- `Path=/`
+- `Secure=true` when request is HTTPS or `X-Forwarded-Proto=https`
+- logout clears cookie with `Max-Age=0`
+
+## 5. Data Security
+
+- Passwords stored as BCrypt hashes.
+- Authorization decisions are role-based plus ownership checks for user-scoped order access.
+- Input validation uses Jakarta Bean Validation annotations and is mapped to `400` via global exception handler.
+
+## 6. Event/Infra Security Notes
+
+- Service-to-service event traffic flows via Kafka topics.
+- Consumer deduplication (`processed_events`) and outbox pattern reduce replay side effects.
+- Local/dev setup exposes service ports; production should restrict internal network exposure.
