@@ -1,0 +1,185 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "START_ALL",
+      "dependsOn": [
+        "INFRA",
+        "BACKEND_MAIN",
+        "FRONTEND_SHARED",
+        "FRONTEND_CUSTOMER",
+        "FRONTEND_ADMIN"
+      ],
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "BACKEND_MAIN",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "BUILD_JARS",
+        "START_SERVICES"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "BUILD_JARS",
+      "type": "shell",
+      "command": "cd backend && mvn clean install -DskipTests",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "build"
+      }
+    },
+    {
+      "label": "START_SERVICES",
+      "dependsOn": [
+        "USER_SVC",
+        "PRODUCT_SVC",
+        "INVENTORY_SVC",
+        "ORDER_SVC",
+        "PAYMENT_SVC"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "USER_SVC",
+      "type": "shell",
+      "command": "cd backend && mvn -pl user-service spring-boot:run",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      },
+      "problemMatcher": [
+        "$msCompile"
+      ]
+    },
+    {
+      "label": "PRODUCT_SVC",
+      "type": "shell",
+      "command": "cd backend && mvn -pl product-service spring-boot:run",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      }
+    },
+    {
+      "label": "INVENTORY_SVC",
+      "type": "shell",
+      "command": "cd backend && mvn -pl inventory-service spring-boot:run",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "ORDER_SVC",
+      "type": "shell",
+      "command": "cd backend && mvn -pl order-service spring-boot:run",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      }
+    },
+    {
+      "label": "PAYMENT_SVC",
+      "type": "shell",
+      "command": "cd backend && mvn -pl payment-service spring-boot:run",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "backend"
+      }
+    },
+    {
+      "label": "INFRA",
+      "type": "shell",
+      "command": "docker info > /dev/null 2>&1 || open -a Docker && until docker info > /dev/null 2>&1; do sleep 2; done; cd infra/docker && docker compose up -d",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "infra"
+      }
+    },
+    {
+      "label": "FRONTEND_SHARED",
+      "type": "shell",
+      "command": "cd frontend/shared && npm install",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "FRONTEND_CUSTOMER",
+      "type": "shell",
+      "command": "cd frontend/customer-web && npm install && npm run dev",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "FRONTEND_ADMIN",
+      "type": "shell",
+      "command": "cd frontend/admin-panel && npm install && npm run dev",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "frontend"
+      }
+    },
+    {
+      "label": "STOP_ALL",
+      "dependsOn": [
+        "STOP_DOCKER",
+        "KILL_JAVA_PROCESSES",
+        "KILL_NODE_PROCESSES"
+      ],
+      "problemMatcher": []
+    },
+    {
+      "label": "STOP_DOCKER",
+      "type": "shell",
+      "command": "cd infra/docker && docker-compose down",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "group": "cleanup"
+      }
+    },
+    {
+      "label": "KILL_JAVA_PROCESSES",
+      "type": "shell",
+      "command": "pkill -f 'spring-boot:run' || echo 'No Java processes found'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "group": "cleanup"
+      }
+    },
+    {
+      "label": "KILL_NODE_PROCESSES",
+      "type": "shell",
+      "command": "pkill -f 'npm run dev' || echo 'No Node processes found'",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "group": "cleanup"
+      }
+    }
+  ]
+}
