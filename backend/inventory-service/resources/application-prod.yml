@@ -32,15 +32,19 @@ spring:
       properties:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
+        spring.json.type.mapping: inventoryReservedEvent:com.ecommerce.inventory.event.InventoryReservedEvent,inventoryFailedEvent:com.ecommerce.inventory.event.InventoryFailedEvent
 
     consumer:
       group-id: inventory-group
       auto-offset-reset: latest
       enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.json.trusted.packages: com.ecommerce.inventory.event
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.ecommerce.inventory.event,com.ecommerce.order.event
+        spring.json.type.mapping: orderCreatedEvent:com.ecommerce.inventory.event.OrderCreatedEvent,orderCancelledEvent:com.ecommerce.inventory.event.OrderCancelledEvent,inventoryFailedEvent:com.ecommerce.inventory.event.InventoryFailedEvent,com.ecommerce.order.event.OrderCreatedEvent:com.ecommerce.inventory.event.OrderCreatedEvent,com.ecommerce.order.event.OrderCancelledEvent:com.ecommerce.inventory.event.OrderCancelledEvent
 
     listener:
       ack-mode: record

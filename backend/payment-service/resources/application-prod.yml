@@ -32,17 +32,19 @@ spring:
       properties:
         enable.idempotence: true
         max.in.flight.requests.per.connection: 5
-        spring.json.type.mapping: paymentSuccessEvent:com.ecommerce.payment.event.PaymentSuccessEvent,paymentFailedEvent:com.ecommerce.payment.event.PaymentFailedEvent
+        spring.json.type.mapping: paymentSuccessEvent:com.ecommerce.payment.event.PaymentSuccessEvent,paymentFailedEvent:com.ecommerce.payment.event.PaymentFailedEvent,refundSuccessEvent:com.ecommerce.payment.event.RefundSuccessEvent,refundFailedEvent:com.ecommerce.payment.event.RefundFailedEvent
 
     consumer:
       group-id: payment-group
       auto-offset-reset: latest
       enable-auto-commit: false
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
-        spring.json.trusted.packages: com.ecommerce.payment.event
-        spring.json.type.mapping: inventoryReservedEvent:com.ecommerce.payment.event.InventoryReservedEvent
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: com.ecommerce.payment.event,com.ecommerce.inventory.event,com.ecommerce.order.event
+        spring.json.type.mapping: inventoryReservedEvent:com.ecommerce.payment.event.InventoryReservedEvent,refundRequestedEvent:com.ecommerce.payment.event.RefundRequestedEvent,com.ecommerce.inventory.event.InventoryReservedEvent:com.ecommerce.payment.event.InventoryReservedEvent,com.ecommerce.order.event.RefundRequestedEvent:com.ecommerce.payment.event.RefundRequestedEvent
 
     listener:
       ack-mode: record
