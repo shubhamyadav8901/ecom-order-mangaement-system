@@ -106,9 +106,14 @@ function App() {
 
   const updateQuantity = (productId: number, quantity: number) => {
     if (quantity <= 0) return;
-    setCartItems(prev => prev.map(item =>
-      item.product.id === productId ? { ...item, quantity } : item
-    ));
+    setCartItems(prev => prev.map(item => {
+      if (item.product.id !== productId) {
+        return item;
+      }
+      const maxAllowed = typeof item.product.stock === 'number' ? item.product.stock : Number.POSITIVE_INFINITY;
+      const clampedQuantity = maxAllowed <= 0 ? item.quantity : Math.min(quantity, maxAllowed);
+      return { ...item, quantity: clampedQuantity };
+    }));
   };
 
   const clearCart = () => setCartItems([]);

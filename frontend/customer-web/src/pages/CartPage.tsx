@@ -66,7 +66,7 @@ export const CartPage: React.FC<CartPageProps> = ({
                       <span style={{ fontWeight: 500, minWidth: '1.5rem', textAlign: 'center' }}>{item.quantity}</span>
                       <button
                         onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
-                        disabled={item.quantity >= (item.product.stock || 999)}
+                        disabled={item.quantity >= (item.product.stock ?? Number.POSITIVE_INFINITY)}
                         style={{ padding: '0.25rem 0.5rem', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer', background: 'white' }}
                       >+</button>
                   </div>
