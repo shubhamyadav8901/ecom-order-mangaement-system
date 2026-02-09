@@ -74,7 +74,8 @@ class OrderControllerTest {
         mockMvc.perform(post("/orders")
                         .principal(new UsernamePasswordAuthenticationToken("plain-user", null, List.of()))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"items\":[]}"))
+                        .content(objectMapper.writeValueAsString(
+                                new OrderRequest(List.of(new OrderItemRequest(5L, 1, new BigDecimal("19.99")))))))
                 .andExpect(status().isInternalServerError());
     }
 
