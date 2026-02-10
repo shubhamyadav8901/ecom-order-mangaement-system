@@ -43,6 +43,10 @@ app:
 services:
   product:
     base-url: ${PRODUCT_SERVICE_BASE_URL:http://localhost:8082}
+    connect-timeout-ms: ${PRODUCT_SERVICE_CONNECT_TIMEOUT_MS:1000}
+    read-timeout-ms: ${PRODUCT_SERVICE_READ_TIMEOUT_MS:2000}
+    retry-max-attempts: ${PRODUCT_SERVICE_RETRY_MAX_ATTEMPTS:3}
+    retry-backoff-ms: ${PRODUCT_SERVICE_RETRY_BACKOFF_MS:200}
 
 logging:
   pattern:
