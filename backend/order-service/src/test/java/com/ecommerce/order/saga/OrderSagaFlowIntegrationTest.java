@@ -30,10 +30,11 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = "spring.task.scheduling.enabled=false")
@@ -49,8 +50,7 @@ class OrderSagaFlowIntegrationTest {
 
     @Container
     static final KafkaContainer KAFKA = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.6.1")
-                    .asCompatibleSubstituteFor("apache/kafka"));
+            DockerImageName.parse("apache/kafka-native:3.8.0"));
 
     @DynamicPropertySource
     static void registerProperties(DynamicPropertyRegistry registry) {
@@ -84,9 +84,11 @@ class OrderSagaFlowIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.execute("TRUNCATE TABLE order_items, orders, outbox_events, processed_events RESTART IDENTITY CASCADE");
-        when(productCatalogClient.getProduct(anyLong())).thenAnswer(invocation -> {
-            Long productId = invocation.getArgument(0, Long.class);
-            return new ProductCatalogClient.ProductInfo(productId, new BigDecimal("99.99"), "ACTIVE");
+        when(productCatalogClient.getProducts(anyList())).thenAnswer(invocation -> {
+            List<Long> productIds = invocation.getArgument(0, List.class);
+            return productIds.stream().collect(Collectors.toMap(
+                    id -> id,
+                    id -> new ProductCatalogClient.ProductInfo(id, new BigDecimal("99.99"), "ACTIVE")));
         });
     }
 

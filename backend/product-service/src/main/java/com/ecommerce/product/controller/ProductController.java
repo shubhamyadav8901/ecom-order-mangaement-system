@@ -34,6 +34,11 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
+    @GetMapping("/batch")
+    public ResponseEntity<List<ProductResponse>> getProductsByIds(@RequestParam("ids") List<Long> ids) {
+        return ResponseEntity.ok(productService.getProductsByIds(ids));
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public ResponseEntity<Void> deleteProduct(@NonNull @PathVariable Long id) {

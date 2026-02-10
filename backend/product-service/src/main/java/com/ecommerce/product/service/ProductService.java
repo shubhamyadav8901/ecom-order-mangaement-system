@@ -14,7 +14,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -69,6 +71,38 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
         return mapToResponse(product);
+    }
+
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getProductsByIds(List<Long> ids) {
+        List<Long> normalizedIds = ids == null
+                ? List.of()
+                : ids.stream()
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList();
+
+        if (normalizedIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<Product> products = productRepository.findAllById(normalizedIds);
+        Map<Long, Product> productById = new LinkedHashMap<>();
+        for (Product product : products) {
+            productById.put(product.getId(), product);
+        }
+
+        List<Long> missingIds = normalizedIds.stream()
+                .filter(id -> !productById.containsKey(id))
+                .toList();
+        if (!missingIds.isEmpty()) {
+            throw new ResourceNotFoundException("Product not found with id: " + missingIds.get(0));
+        }
+
+        return normalizedIds.stream()
+                .map(productById::get)
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional

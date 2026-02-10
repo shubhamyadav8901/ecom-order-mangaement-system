@@ -30,5 +30,5 @@ kubectl apply -k infra/k8s/base
 3. Ensure dependent services (Kafka/Postgres) are reachable from cluster.
 
 ## Notes
-- These manifests are a baseline for interview/demo environments.
+- These manifests are a baseline for demo environments.
 - For production, add NetworkPolicies, PodDisruptionBudgets, external secret manager integration, and separate environment overlays.

@@ -2,9 +2,11 @@ package com.ecommerce.order.service;
 
 import com.ecommerce.common.exception.ResourceConflictException;
 import com.ecommerce.common.exception.OrderNotFoundException;
+import com.ecommerce.common.exception.ResourceNotFoundException;
 import com.ecommerce.order.client.ProductCatalogClient;
 import com.ecommerce.order.domain.Order;
 import com.ecommerce.order.domain.OrderItem;
+import com.ecommerce.order.dto.OrderItemRequest;
 import com.ecommerce.order.dto.OrderRequest;
 import com.ecommerce.order.dto.OrderResponse;
 import com.ecommerce.order.event.OrderCancelledEvent;
@@ -22,7 +24,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -56,12 +57,20 @@ public class OrderService {
                 order.setUserId(userId);
                 order.setStatus("CREATED");
 
-                Map<Long, ProductCatalogClient.ProductInfo> productCache = new HashMap<>();
+                List<Long> requestedProductIds = request.items().stream()
+                                .map(OrderItemRequest::productId)
+                                .distinct()
+                                .toList();
+                Map<Long, ProductCatalogClient.ProductInfo> productCache = productCatalogClient
+                                .getProducts(requestedProductIds);
+
                 List<OrderItem> items = request.items().stream()
                                 .map(itemReq -> {
-                                        ProductCatalogClient.ProductInfo product = productCache.computeIfAbsent(
-                                                        itemReq.productId(),
-                                                        productCatalogClient::getProduct);
+                                        ProductCatalogClient.ProductInfo product = productCache.get(itemReq.productId());
+                                        if (product == null) {
+                                                throw new ResourceNotFoundException(
+                                                                "Product not found with id: " + itemReq.productId());
+                                        }
 
                                         if (!"ACTIVE".equalsIgnoreCase(product.status())) {
                                                 throw new ResourceConflictException(

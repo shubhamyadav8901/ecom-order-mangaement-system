@@ -187,14 +187,14 @@ function App() {
       setAccessToken(accessToken);
       setToken(accessToken);
       addToast('Welcome back!', 'success');
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
       addToast('Login failed. Check credentials.', 'error');
     }
   };
 
   const handleLogout = () => {
-    api.post('/auth/logout').catch(err => {
+    api.post('/auth/logout').catch((err: unknown) => {
       console.error(err);
     }).finally(() => {
       setAccessToken(null);

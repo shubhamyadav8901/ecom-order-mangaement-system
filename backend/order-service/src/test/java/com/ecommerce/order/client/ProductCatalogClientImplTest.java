@@ -39,9 +39,9 @@ class ProductCatalogClientImplTest {
 
     @Test
     void getProductReturnsCatalogDataWhenAvailable() {
-        mockServer.expect(requestTo(BASE_URL + "/products/1"))
+        mockServer.expect(requestTo(BASE_URL + "/products/batch?ids=1"))
                 .andExpect(method(HttpMethod.GET))
-                .andRespond(withSuccess("{\"id\":1,\"price\":99.99,\"status\":\"ACTIVE\"}", org.springframework.http.MediaType.APPLICATION_JSON));
+                .andRespond(withSuccess("[{\"id\":1,\"price\":99.99,\"status\":\"ACTIVE\"}]", org.springframework.http.MediaType.APPLICATION_JSON));
 
         ProductCatalogClient.ProductInfo result = productCatalogClient.getProduct(1L);
 
@@ -53,7 +53,7 @@ class ProductCatalogClientImplTest {
 
     @Test
     void getProductThrowsNotFoundFor404Response() {
-        mockServer.expect(requestTo(BASE_URL + "/products/99"))
+        mockServer.expect(requestTo(BASE_URL + "/products/batch?ids=99"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
@@ -63,11 +63,27 @@ class ProductCatalogClientImplTest {
 
     @Test
     void getProductRetriesTransientServerErrorsThenThrowsConflict() {
-        mockServer.expect(ExpectedCount.times(3), requestTo(BASE_URL + "/products/5"))
+        mockServer.expect(ExpectedCount.times(3), requestTo(BASE_URL + "/products/batch?ids=5"))
                 .andExpect(method(HttpMethod.GET))
                 .andRespond(withStatus(HttpStatus.SERVICE_UNAVAILABLE));
 
         assertThrows(ResourceConflictException.class, () -> productCatalogClient.getProduct(5L));
+        mockServer.verify();
+    }
+
+    @Test
+    void getProductsReturnsMapForAllIds() {
+        mockServer.expect(requestTo(BASE_URL + "/products/batch?ids=1&ids=2"))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess(
+                        "[{\"id\":1,\"price\":99.99,\"status\":\"ACTIVE\"},{\"id\":2,\"price\":15.50,\"status\":\"ACTIVE\"}]",
+                        org.springframework.http.MediaType.APPLICATION_JSON));
+
+        var result = productCatalogClient.getProducts(java.util.List.of(1L, 2L));
+
+        assertEquals(2, result.size());
+        assertEquals("99.99", result.get(1L).price().toPlainString());
+        assertEquals("15.50", result.get(2L).price().toPlainString());
         mockServer.verify();
     }
 }
