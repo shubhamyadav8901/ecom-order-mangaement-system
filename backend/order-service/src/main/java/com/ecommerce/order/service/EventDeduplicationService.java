@@ -13,7 +13,7 @@ public class EventDeduplicationService {
     @Autowired
     private ProcessedEventRepository processedEventRepository;
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW, noRollbackFor = DataIntegrityViolationException.class)
     public boolean tryStartProcessing(String eventKey) {
         try {
             return processedEventRepository.insertIgnoreConflict(eventKey) > 0;
