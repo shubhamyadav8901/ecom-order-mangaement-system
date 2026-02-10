@@ -209,6 +209,7 @@ Each service exposes API docs. Access them directly:
 * `frontend/`: React applications (Customer, Admin)
 * `infra/`: Infrastructure configuration (Docker Compose, PostgreSQL/Kafka wiring, Nginx)
 * `docs/`: Design and Architecture documentation
+* `docs/adr/`: Architecture Decision Records for key distributed-system choices
 
 ---
 
