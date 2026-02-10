@@ -22,8 +22,34 @@ For detailed architecture and design, see [docs/architecture.md](docs/architectu
 
 * **Multi-Service Monorepo**: Services run independently but share one repository for cohesive development and testing.
 * **Event-Driven**: Uses **Kafka** for the Order Saga pattern (Order -> Inventory -> Payment).
+* **Compensation Flows**: Supports cancellation and refund orchestration (Order -> Payment refund -> Order finalization).
+* **Reliability Patterns**: Implements transactional outbox publishing + idempotent event deduplication.
 * **API Gateway**: **Nginx** routes traffic to backend services and frontend apps.
 * **Frontend**: React + TypeScript (Vite).
+
+---
+
+## ✅ Production Readiness Highlights
+
+* **Saga + Compensation**: Order lifecycle handles success/failure transitions across Inventory and Payment, including refund flows for paid cancellations.
+* **Outbox Pattern**: Domain changes and integration events are persisted atomically and published asynchronously to Kafka.
+* **Idempotent Consumers**: Duplicate delivery is handled safely using `processed_events` tracking and duplicate-key conflict handling.
+* **Kafka Resilience**: Configured retries + Dead Letter Topic (DLT) routing for non-recoverable consumer failures.
+* **Observability Baseline**: Added Actuator health/info/prometheus exposure and OpenTelemetry bridge-based tracing hooks.
+
+---
+
+## 🧪 Testing Strategy
+
+* **Service Unit Tests**: Controller/service-level tests for core business paths and edge cases.
+* **Refund Flow Coverage**: Tests for paid vs unpaid cancellation behavior and payment refund transitions.
+* **Integration Tests**: Added Docker-aware Testcontainers saga/integration tests for order, inventory, and payment services.
+* **Full Suite Command**:
+  ```bash
+  cd backend
+  mvn -q test
+  ```
+  This runs all backend module tests. Testcontainers tests auto-skip when Docker is unavailable.
 
 ---
 
@@ -145,6 +171,10 @@ Each service exposes API docs. Access them directly:
 *   **Inventory Service**: [http://localhost:8083/swagger-ui/index.html](http://localhost:8083/swagger-ui/index.html)
 *   **Order Service**: [http://localhost:8084/swagger-ui/index.html](http://localhost:8084/swagger-ui/index.html)
 *   **Payment Service**: [http://localhost:8085/swagger-ui/index.html](http://localhost:8085/swagger-ui/index.html)
+
+#### 📊 Observability Endpoints
+*   **Prometheus metrics**: `http://localhost:<service-port>/actuator/prometheus`
+*   **Health**: `http://localhost:<service-port>/actuator/health`
 
 ---
 
