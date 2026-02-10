@@ -16,6 +16,7 @@ Infra:
 - PostgreSQL (database-per-service)
 - Kafka (event backbone)
 - Nginx (gateway/reverse proxy)
+- Prometheus + Grafana (metrics collection and visualization)
 - Docker Compose (local orchestration)
 
 Frontends:
