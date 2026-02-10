@@ -94,6 +94,16 @@ Notes:
 
 ---
 
+## Event Contract Governance
+
+- Kafka producers attach `event-contract-version` header (current value: `v1`).
+- Versioned schemas are stored under `docs/contracts/v1/`.
+- Compatibility and evolution rules:
+  - `docs/contracts/compatibility-notes.md`
+  - `docs/contracts/schema-evolution-strategy.md`
+
+---
+
 ## Error Contract
 
 Global error body:

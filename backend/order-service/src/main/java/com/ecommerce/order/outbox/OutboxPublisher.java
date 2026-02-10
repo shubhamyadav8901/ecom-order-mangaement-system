@@ -1,5 +1,6 @@
 package com.ecommerce.order.outbox;
 
+import com.ecommerce.common.event.EventContractVersions;
 import com.ecommerce.order.event.InventoryFailedEvent;
 import com.ecommerce.order.event.OrderCancelledEvent;
 import com.ecommerce.order.event.OrderCreatedEvent;
@@ -10,8 +11,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -71,7 +75,12 @@ public class OutboxPublisher {
 
         try {
             Object payload = deserialize(event.getEventType(), event.getPayload());
-            kafkaTemplate.send(event.getTopic(), event.getAggregateKey(), payload).get();
+            Message<Object> message = MessageBuilder.withPayload(payload)
+                    .setHeader(KafkaHeaders.TOPIC, event.getTopic())
+                    .setHeader(KafkaHeaders.KEY, event.getAggregateKey())
+                    .setHeader(EventContractVersions.HEADER_NAME, EventContractVersions.versionForTopic(event.getTopic()))
+                    .build();
+            kafkaTemplate.send(message).get();
             event.setStatus(OutboxStatus.PUBLISHED);
             event.setPublishedAt(LocalDateTime.now());
             event.setLastError(null);

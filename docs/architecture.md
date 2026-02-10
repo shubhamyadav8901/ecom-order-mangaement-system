@@ -17,6 +17,7 @@ Infra:
 - Kafka (event backbone)
 - Nginx (gateway/reverse proxy)
 - Prometheus + Grafana (metrics collection and visualization)
+- OpenTelemetry + Jaeger (distributed tracing)
 - Docker Compose (local orchestration)
 
 Frontends:
@@ -152,6 +153,10 @@ sequenceDiagram
   - `payment-failed`
   - `refund-success`
   - `refund-failed`
+
+Contract metadata:
+- Outbox publishers include header `event-contract-version` (`v1`).
+- Schemas are versioned under `docs/contracts/v1`.
 
 ### Consumer subscriptions
 - Inventory consumer:

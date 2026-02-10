@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ecom
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - secret.template.yaml
+  - user-service-deployment.yaml
+  - product-service-deployment.yaml
+  - inventory-service-deployment.yaml
+  - order-service-deployment.yaml
+  - payment-service-deployment.yaml

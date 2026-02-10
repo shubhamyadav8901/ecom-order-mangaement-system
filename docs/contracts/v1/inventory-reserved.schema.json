@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "inventory-reserved v1",
+  "type": "object",
+  "required": ["orderId", "totalAmount"],
+  "properties": {
+    "orderId": { "type": "integer" },
+    "totalAmount": { "type": "number" }
+  }
+}

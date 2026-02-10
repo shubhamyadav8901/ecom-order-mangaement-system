@@ -69,3 +69,24 @@ Refresh cookie settings from auth controller:
 - Service-to-service event traffic flows via Kafka topics.
 - Consumer deduplication (`processed_events`) and outbox pattern reduce replay side effects.
 - Local/dev setup exposes service ports; production should restrict internal network exposure.
+
+## 7. Secret Management
+
+- Production configs (`application-prod.yml`) consume secrets from environment variables:
+  - `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`
+  - `JWT_SECRET`
+  - `KAFKA_BOOTSTRAP_SERVERS`
+- Kubernetes baseline manifests include `Secret` template (`infra/k8s/base/secret.template.yaml`) for runtime secret injection.
+- Default/local values are for development only and must be rotated in real environments.
+
+## 8. Security Test Coverage
+
+- Role/authorization controller tests exist for admin/customer boundaries (notably in order/user modules).
+- Refresh-token lifecycle tests include:
+  - valid refresh token path
+  - expired refresh token rejection and deletion
+  - unknown token rejection
+
+## 9. Dependency Scanning
+
+- CI pull requests run GitHub Dependency Review (`actions/dependency-review-action`) to flag vulnerable dependency changes.

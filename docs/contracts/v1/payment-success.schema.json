@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "payment-success v1",
+  "type": "object",
+  "required": ["orderId", "transactionId"],
+  "properties": {
+    "orderId": { "type": "integer" },
+    "transactionId": { "type": "string" }
+  }
+}

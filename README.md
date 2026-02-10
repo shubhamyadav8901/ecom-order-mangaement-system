@@ -15,6 +15,10 @@ Build a **scalable, secure, production-style e-commerce backend** with a **separ
 This project demonstrates **real-world backend engineering**, not CRUD.
 
 For detailed architecture and design, see [docs/architecture.md](docs/architecture.md).
+Operational failure handling details are in [docs/dlq-retry-runbook.md](docs/dlq-retry-runbook.md).
+Event contract governance is documented in [docs/contracts/README.md](docs/contracts/README.md).
+Tracing verification steps are in [docs/tracing-runbook.md](docs/tracing-runbook.md).
+Failure mode behavior is documented in [docs/failure-scenarios.md](docs/failure-scenarios.md).
 
 ---
 
@@ -176,6 +180,7 @@ You can access the applications via the **Nginx API Gateway** (Port 80) or direc
 *   **Admin Panel**: [http://localhost/admin](http://localhost/admin) (Proxies to Port 5174)
 *   **Prometheus**: [http://localhost:9090](http://localhost:9090)
 *   **Grafana**: [http://localhost:3000](http://localhost:3000) (`admin` / `admin`)
+*   **Jaeger Tracing**: [http://localhost:16686](http://localhost:16686)
 
 #### 🛠️ API Documentation (Swagger/OpenAPI)
 Each service exposes API docs. Access them directly:
