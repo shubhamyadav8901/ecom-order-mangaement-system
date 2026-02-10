@@ -174,6 +174,8 @@ You can access the applications via the **Nginx API Gateway** (Port 80) or direc
 
 *   **Customer Web**: [http://localhost](http://localhost) (Proxies to Port 5173)
 *   **Admin Panel**: [http://localhost/admin](http://localhost/admin) (Proxies to Port 5174)
+*   **Prometheus**: [http://localhost:9090](http://localhost:9090)
+*   **Grafana**: [http://localhost:3000](http://localhost:3000) (`admin` / `admin`)
 
 #### 🛠️ API Documentation (Swagger/OpenAPI)
 Each service exposes API docs. Access them directly:
