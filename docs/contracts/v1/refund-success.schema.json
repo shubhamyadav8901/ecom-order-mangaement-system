@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "refund-success v1",
+  "type": "object",
+  "required": ["orderId", "refundId"],
+  "properties": {
+    "orderId": { "type": "integer" },
+    "refundId": { "type": "string" }
+  }
+}

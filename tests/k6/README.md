@@ -16,6 +16,15 @@ brew install k6
 k6 run tests/k6/order-flow-smoke.js
 ```
 
+## Saga flow performance run (checkout/cancel/refund)
+```bash
+./tests/k6/run-saga-report.sh
+```
+
+This generates:
+- `tests/k6/reports/saga-summary.json`
+- `tests/k6/reports/saga-report.md`
+
 ## Optional environment overrides
 ```bash
 BASE_URL=http://localhost/api \

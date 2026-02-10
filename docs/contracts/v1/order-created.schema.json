@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "order-created v1",
+  "type": "object",
+  "required": ["orderId", "userId", "totalAmount", "items"],
+  "properties": {
+    "orderId": { "type": "integer" },
+    "userId": { "type": "integer" },
+    "totalAmount": { "type": "number" },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["productId", "quantity"],
+        "properties": {
+          "productId": { "type": "integer" },
+          "quantity": { "type": "integer", "minimum": 1 }
+        }
+      }
+    }
+  }
+}

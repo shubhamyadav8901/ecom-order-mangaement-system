@@ -1,0 +1,137 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: order-service
+  namespace: ecom
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: order-service
+  template:
+    metadata:
+      labels:
+        app: order-service
+    spec:
+      containers:
+        - name: order-service
+          image: ghcr.io/babe8901/order-service:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8084
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: DB_URL
+              value: jdbc:postgresql://postgres:5432/order_db
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: ecom-secrets
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: ecom-secrets
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ecom-secrets
+                  key: JWT_SECRET
+            - name: JWT_EXPIRATION
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: JWT_EXPIRATION
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
+            - name: KAFKA_CONCURRENCY
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: KAFKA_CONCURRENCY
+            - name: OUTBOX_PUBLISHER_FIXED_DELAY_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: OUTBOX_PUBLISHER_FIXED_DELAY_MS
+            - name: OUTBOX_PUBLISHER_BATCH_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: OUTBOX_PUBLISHER_BATCH_SIZE
+            - name: OUTBOX_PUBLISHER_MAX_ATTEMPTS
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: OUTBOX_PUBLISHER_MAX_ATTEMPTS
+            - name: OUTBOX_PUBLISHER_IN_PROGRESS_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: OUTBOX_PUBLISHER_IN_PROGRESS_TIMEOUT_MS
+            - name: PRODUCT_SERVICE_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: ecom-config
+                  key: PRODUCT_SERVICE_BASE_URL
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8084
+            initialDelaySeconds: 40
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 150m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 768Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: order-service
+  namespace: ecom
+spec:
+  selector:
+    app: order-service
+  ports:
+    - name: http
+      port: 8084
+      targetPort: 8084
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: order-service
+  namespace: ecom
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: order-service
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70

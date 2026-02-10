@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.messaging.Message;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -15,7 +16,6 @@ import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @SpringBootTest(properties = "spring.task.scheduling.enabled=false")
@@ -37,7 +37,7 @@ class OutboxPublisherIntegrationTest {
     @BeforeEach
     void setup() {
         jdbcTemplate.execute("TRUNCATE TABLE outbox_events RESTART IDENTITY");
-        when(kafkaTemplate.send(anyString(), anyString(), any()))
+        when(kafkaTemplate.send(any(Message.class)))
                 .thenReturn(CompletableFuture.completedFuture(null));
     }
 
