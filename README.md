@@ -65,6 +65,11 @@ Ensure you have the following installed:
 *   **Node.js 18+** (`node -v`)
 *   **Docker** & **Docker Compose** (`docker compose version` or `docker-compose -v`)
 
+On macOS, you can install the full toolchain using Homebrew:
+```bash
+./scripts/setup-macos-brew.sh
+```
+
 ### 1️⃣ Start Infrastructure
 
 Start the databases (Postgres), Message Broker (Kafka), Cache (Redis), and API Gateway (Nginx).
