@@ -50,6 +50,70 @@ Frontends:
    - `refund-success` -> `CANCELLED`
    - `refund-failed` -> `REFUND_FAILED`
 
+### Checkout Saga Sequence
+```mermaid
+sequenceDiagram
+    actor C as Customer
+    participant O as Order Service
+    participant I as Inventory Service
+    participant P as Payment Service
+    participant K as Kafka
+
+    C->>O: POST /orders
+    O->>O: Save order (CREATED)
+    O->>K: outbox -> order-created
+    K->>I: order-created
+    I->>I: Reserve stock
+    alt stock reserved
+        I->>K: inventory-reserved
+        K->>P: inventory-reserved
+        P->>P: Process payment
+        alt payment success
+            P->>K: payment-success
+            K->>O: payment-success
+            O->>O: status -> PAID
+        else payment failed
+            P->>K: payment-failed
+            K->>O: payment-failed
+            O->>O: status -> CANCELLED
+            K->>I: payment-failed
+            I->>I: Release reservation
+        end
+    else stock unavailable
+        I->>K: inventory-failed
+        K->>O: inventory-failed
+        O->>O: status -> CANCELLED
+    end
+```
+
+### Paid Cancellation + Refund Sequence
+```mermaid
+sequenceDiagram
+    actor C as Customer/Admin
+    participant O as Order Service
+    participant I as Inventory Service
+    participant P as Payment Service
+    participant K as Kafka
+
+    C->>O: POST /orders/{id}/cancel
+    O->>O: status -> REFUND_PENDING (if PAID)
+    O->>K: outbox -> order-cancelled
+    O->>K: outbox -> refund-requested
+    K->>I: order-cancelled
+    I->>I: Release reserved stock
+    K->>P: refund-requested
+    P->>P: Process refund
+    alt refund success
+        P->>K: refund-success
+        K->>O: refund-success
+        O->>O: status -> CANCELLED
+    else refund failed
+        P->>K: refund-failed
+        K->>O: refund-failed
+        O->>O: status -> REFUND_FAILED
+    end
+```
+
 ---
 
 ## 3. Order and Payment States
