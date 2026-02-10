@@ -44,12 +44,18 @@ For detailed architecture and design, see [docs/architecture.md](docs/architectu
 * **Service Unit Tests**: Controller/service-level tests for core business paths and edge cases.
 * **Refund Flow Coverage**: Tests for paid vs unpaid cancellation behavior and payment refund transitions.
 * **Integration Tests**: Added Docker-aware Testcontainers saga/integration tests for order, inventory, and payment services.
+* **Performance Smoke Test**: k6 script for login -> catalog -> order -> my-orders flow at `tests/k6/order-flow-smoke.js`.
 * **Full Suite Command**:
   ```bash
   cd backend
   mvn -q test
   ```
   This runs all backend module tests. Testcontainers tests auto-skip when Docker is unavailable.
+
+### k6 Smoke Run
+```bash
+k6 run tests/k6/order-flow-smoke.js
+```
 
 ---
 
