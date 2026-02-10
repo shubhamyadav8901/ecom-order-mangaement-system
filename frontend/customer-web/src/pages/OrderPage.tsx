@@ -100,7 +100,7 @@ export const OrderPage: React.FC<OrderPageProps> = ({ onRetry }) => {
               role="button"
               tabIndex={0}
               onClick={() => setSelectedOrder(o)}
-              onKeyDown={(e) => {
+              onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   setSelectedOrder(o);

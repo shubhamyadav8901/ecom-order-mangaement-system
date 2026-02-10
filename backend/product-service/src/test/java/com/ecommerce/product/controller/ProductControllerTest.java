@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
@@ -121,6 +122,21 @@ class ProductControllerTest {
 
         mockMvc.perform(get("/products/1"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getProductsByIdsSuccess() throws Exception {
+        when(productService.getProductsByIds(anyList())).thenReturn(List.of(
+                new ProductResponse(1L, "P1", "D1", new BigDecimal("10.00"), null, null, 1L, "ACTIVE", null,
+                        List.of()),
+                new ProductResponse(2L, "P2", "D2", new BigDecimal("20.00"), null, null, 1L, "ACTIVE", null,
+                        List.of())
+        ));
+
+        mockMvc.perform(get("/products/batch").param("ids", "1", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1L))
+                .andExpect(jsonPath("$[1].id").value(2L));
     }
 
     @Test

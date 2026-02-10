@@ -6,6 +6,9 @@ import com.ecommerce.payment.event.PaymentSuccessEvent;
 import com.ecommerce.payment.event.RefundFailedEvent;
 import com.ecommerce.payment.event.RefundSuccessEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.TraceContext;
+import io.micrometer.tracing.Tracer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -31,6 +34,9 @@ public class OutboxPublisher {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    @Autowired
+    private Tracer tracer;
 
     @Value("${outbox.publisher.batch-size:50}")
     private int batchSize;
@@ -78,7 +84,7 @@ public class OutboxPublisher {
                     .setHeader(KafkaHeaders.KEY, event.getAggregateKey())
                     .setHeader(EventContractVersions.HEADER_NAME, EventContractVersions.versionForTopic(event.getTopic()))
                     .build();
-            kafkaTemplate.send(message).get();
+            sendMessageWithTraceContext(event, message);
             event.setStatus(OutboxStatus.PUBLISHED);
             event.setPublishedAt(LocalDateTime.now());
             event.setLastError(null);
@@ -88,6 +94,31 @@ public class OutboxPublisher {
         }
 
         outboxEventRepository.save(event);
+    }
+
+    private void sendMessageWithTraceContext(OutboxEvent event, Message<Object> message) throws Exception {
+        String traceId = event.getTraceId();
+        String parentSpanId = event.getParentSpanId();
+
+        if (traceId == null || parentSpanId == null) {
+            kafkaTemplate.send(message).get();
+            return;
+        }
+
+        TraceContext parentContext = tracer.traceContextBuilder()
+                .traceId(traceId)
+                .spanId(parentSpanId)
+                .sampled(event.getTraceSampled())
+                .build();
+        Span publishSpan = tracer.spanBuilder()
+                .setParent(parentContext)
+                .name("outbox.publish")
+                .start();
+        try (Tracer.SpanInScope ignored = tracer.withSpan(publishSpan)) {
+            kafkaTemplate.send(message).get();
+        } finally {
+            publishSpan.end();
+        }
     }
 
     private Object deserialize(String eventType, String payload) throws Exception {

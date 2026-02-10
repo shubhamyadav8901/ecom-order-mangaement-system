@@ -64,7 +64,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    api.post('/auth/logout').catch(err => {
+    api.post('/auth/logout').catch((err: unknown) => {
       console.error(err);
     }).finally(() => {
       setAccessToken(null);

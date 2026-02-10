@@ -31,6 +31,15 @@ public class OutboxEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
+    @Column(name = "trace_id")
+    private String traceId;
+
+    @Column(name = "parent_span_id")
+    private String parentSpanId;
+
+    @Column(name = "trace_sampled")
+    private Boolean traceSampled;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private OutboxStatus status;

@@ -15,22 +15,48 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.kafka.core.KafkaTemplate;
 import com.ecommerce.common.security.CustomPrincipal;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
-import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.task.scheduling.enabled=false",
+        "spring.kafka.listener.auto-startup=false"
+})
 @AutoConfigureMockMvc
+@Testcontainers(disabledWithoutDocker = true)
 @SuppressWarnings("null")
 public class OrderIntegrationTest {
+
+    @Container
+    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine")
+            .withDatabaseName("order_integration_test_db")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void registerProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRES::getUsername);
+        registry.add("spring.datasource.password", POSTGRES::getPassword);
+        registry.add("spring.flyway.url", POSTGRES::getJdbcUrl);
+        registry.add("spring.flyway.user", POSTGRES::getUsername);
+        registry.add("spring.flyway.password", POSTGRES::getPassword);
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -46,8 +72,8 @@ public class OrderIntegrationTest {
 
     @Test
     public void testCreateOrder() throws Exception {
-        when(productCatalogClient.getProduct(anyLong()))
-                .thenReturn(new ProductCatalogClient.ProductInfo(1L, new BigDecimal("50.00"), "ACTIVE"));
+        when(productCatalogClient.getProducts(anyList()))
+                .thenReturn(Map.of(1L, new ProductCatalogClient.ProductInfo(1L, new BigDecimal("50.00"), "ACTIVE")));
 
         OrderItemRequest item = new OrderItemRequest(1L, 2, new BigDecimal("50.00"));
         OrderRequest request = new OrderRequest(List.of(item));
