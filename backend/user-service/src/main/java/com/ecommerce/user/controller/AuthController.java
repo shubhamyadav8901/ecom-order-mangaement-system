@@ -18,8 +18,15 @@ public class AuthController {
     private AuthService authService;
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.ok(authService.register(request));
+    public ResponseEntity<AuthResponse> register(
+            @Valid @RequestBody RegisterRequest request,
+            jakarta.servlet.http.HttpServletRequest servletRequest,
+            jakarta.servlet.http.HttpServletResponse response) {
+        AuthResponse authResponse = authService.register(request);
+        boolean secure = isSecureRequest(servletRequest);
+        response.addHeader(HttpHeaders.SET_COOKIE, buildRefreshTokenCookie(authResponse.refreshToken(), secure, false).toString());
+
+        return ResponseEntity.ok(authResponse);
     }
 
     @PostMapping("/login")

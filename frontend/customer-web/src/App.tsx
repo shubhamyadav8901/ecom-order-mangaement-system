@@ -15,6 +15,8 @@ interface CartItem {
   quantity: number;
 }
 
+type AuthMode = 'login' | 'signup';
+
 const isActiveProduct = (product: { status?: string } | null | undefined): boolean =>
   ((product?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE');
 
@@ -53,8 +55,13 @@ function App() {
   const [view, setView] = useState('catalog');
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'all'>('all');
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [authMode, setAuthMode] = useState<AuthMode>('login');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmittingAuth, setIsSubmittingAuth] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   // Initial Auth Check
@@ -118,6 +125,21 @@ function App() {
 
   const clearCart = () => setCartItems([]);
 
+  const setAuthenticatedUser = (accessToken: unknown): boolean => {
+    if (typeof accessToken !== 'string' || accessToken.length === 0) {
+      return false;
+    }
+    setAccessToken(accessToken);
+    setToken(accessToken);
+    return true;
+  };
+
+  const switchAuthMode = (mode: AuthMode) => {
+    setAuthMode(mode);
+    setPassword('');
+    setConfirmPassword('');
+  };
+
   const handleCheckout = async () => {
     if (isCheckingOut || cartItems.length === 0) return;
     setIsCheckingOut(true);
@@ -178,18 +200,70 @@ function App() {
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (isSubmittingAuth) return;
+    setIsSubmittingAuth(true);
     try {
       const response = await api.post('/auth/login', { email, password });
-      const { accessToken } = response.data;
-      // Do not store in localStorage
-      setAccessToken(accessToken);
-      setToken(accessToken);
+      if (!setAuthenticatedUser(response.data?.accessToken)) {
+        throw new Error('Missing access token in login response');
+      }
       addToast('Welcome back!', 'success');
     } catch (err: unknown) {
       console.error(err);
-      addToast('Login failed. Check credentials.', 'error');
+      addToast(getApiErrorMessage(err, 'Login failed. Check credentials.'), 'error');
+    } finally {
+      setIsSubmittingAuth(false);
+    }
+  };
+
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isSubmittingAuth) return;
+
+    if (!firstName.trim() || !lastName.trim()) {
+      addToast('First name and last name are required.', 'error');
+      return;
+    }
+    if (password.length < 8) {
+      addToast('Password must be at least 8 characters.', 'error');
+      return;
+    }
+    if (password !== confirmPassword) {
+      addToast('Password and confirm password must match.', 'error');
+      return;
+    }
+
+    setIsSubmittingAuth(true);
+    try {
+      const normalizedEmail = email.trim();
+      const normalizedFirstName = firstName.trim();
+      const normalizedLastName = lastName.trim();
+      const response = await api.post('/auth/register', {
+        email: normalizedEmail,
+        password,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName
+      });
+
+      // Backward compatible fallback for environments where register doesn't return/attach full auth context.
+      if (!setAuthenticatedUser(response.data?.accessToken)) {
+        const loginResponse = await api.post('/auth/login', { email: normalizedEmail, password });
+        if (!setAuthenticatedUser(loginResponse.data?.accessToken)) {
+          throw new Error('Missing access token after register/login');
+        }
+      }
+
+      setFirstName(normalizedFirstName);
+      setLastName(normalizedLastName);
+      setConfirmPassword('');
+      addToast('Account created successfully!', 'success');
+    } catch (err: unknown) {
+      console.error(err);
+      addToast(getApiErrorMessage(err, 'Registration failed. Please try again.'), 'error');
+    } finally {
+      setIsSubmittingAuth(false);
     }
   };
 
@@ -213,15 +287,79 @@ function App() {
   }
 
   if (!token) {
+    const isSignup = authMode === 'signup';
+
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f3f4f6' }}>
         <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>Welcome Back</h2>
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Input type="email" placeholder="Email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required />
-            <Input type="password" placeholder="Password" value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required />
-            <Button type="submit" style={{ width: '100%' }}>Sign In</Button>
+          <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>
+            {isSignup ? 'Create Account' : 'Welcome Back'}
+          </h2>
+          <form onSubmit={isSignup ? handleRegister : handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {isSignup && (
+              <>
+                <Input
+                  type="text"
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                  required
+                />
+                <Input
+                  type="text"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                  required
+                />
+              </>
+            )}
+            <Input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+              required
+            />
+            <Input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+              minLength={8}
+              required
+            />
+            {isSignup && (
+              <Input
+                type="password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            )}
+            <Button type="submit" style={{ width: '100%' }} isLoading={isSubmittingAuth}>
+              {isSignup ? 'Create Account' : 'Sign In'}
+            </Button>
           </form>
+          <p style={{ marginTop: '1rem', textAlign: 'center', fontSize: '0.9rem', color: '#4b5563' }}>
+            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              onClick={() => switchAuthMode(isSignup ? 'login' : 'signup')}
+              style={{
+                border: 0,
+                background: 'none',
+                color: '#2563eb',
+                cursor: 'pointer',
+                fontWeight: 600,
+                padding: 0
+              }}
+            >
+              {isSignup ? 'Sign In' : 'Sign Up'}
+            </button>
+          </p>
         </div>
       </div>
     );

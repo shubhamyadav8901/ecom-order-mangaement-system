@@ -61,7 +61,27 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access-token"))
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.refreshToken").doesNotExist());
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("refresh_token=refresh-token"),
+                        org.hamcrest.Matchers.containsString("HttpOnly"),
+                        org.hamcrest.Matchers.containsString("SameSite=Strict"),
+                        org.hamcrest.Matchers.containsString("Path=/")
+                )));
+    }
+
+    @Test
+    void registerSecureRequestSetsSecureCookie() throws Exception {
+        when(authService.register(any(RegisterRequest.class)))
+                .thenReturn(new AuthResponse("access-token", "refresh-token", "Bearer"));
+
+        mockMvc.perform(post("/auth/register")
+                        .header("X-Forwarded-Proto", "https")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new RegisterRequest("newuser@example.com", "Password123!", "New", "User"))))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE, org.hamcrest.Matchers.containsString("Secure")));
     }
 
     @Test
