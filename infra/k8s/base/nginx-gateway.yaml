@@ -1,0 +1,186 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-gateway-config
+  namespace: ecom
+data:
+  nginx.conf: |
+    events {}
+
+    http {
+        upstream user-service {
+            server user-service:8081;
+        }
+
+        upstream product-service {
+            server product-service:8082;
+        }
+
+        upstream inventory-service {
+            server inventory-service:8083;
+        }
+
+        upstream order-service {
+            server order-service:8084;
+        }
+
+        upstream payment-service {
+            server payment-service:8085;
+        }
+
+        upstream customer-web {
+            server customer-web:80;
+        }
+
+        upstream admin-panel {
+            server admin-panel:80;
+        }
+
+        server {
+            listen 80;
+            rewrite ^/admin$ /admin/ permanent;
+
+            location = /healthz {
+                add_header Content-Type text/plain;
+                return 200 "ok";
+            }
+
+            location / {
+                proxy_pass http://customer-web;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location /admin/ {
+                rewrite ^/admin/?(.*)$ /$1 break;
+                proxy_pass http://admin-panel;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+            }
+
+            location /api/auth {
+                rewrite ^/api/auth(.*) /auth$1 break;
+                proxy_pass http://user-service;
+            }
+
+            location /api/users {
+                rewrite ^/api/users(.*) /users$1 break;
+                proxy_pass http://user-service;
+            }
+
+            location /api/products {
+                rewrite ^/api/products(.*) /products$1 break;
+                proxy_pass http://product-service;
+            }
+
+            location /api/categories {
+                rewrite ^/api/categories(.*) /categories$1 break;
+                proxy_pass http://product-service;
+            }
+
+            location /api/inventory {
+                rewrite ^/api/inventory(.*) /inventory$1 break;
+                proxy_pass http://inventory-service;
+            }
+
+            location /api/orders {
+                rewrite ^/api/orders(.*) /orders$1 break;
+                proxy_pass http://order-service;
+            }
+
+            location /api/payments {
+                rewrite ^/api/payments(.*) /payments$1 break;
+                proxy_pass http://payment-service;
+            }
+        }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-gateway
+  namespace: ecom
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx-gateway
+  template:
+    metadata:
+      labels:
+        app: nginx-gateway
+    spec:
+      containers:
+        - name: nginx-gateway
+          image: nginx:1.27-alpine
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: nginx-gateway-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-gateway
+  namespace: ecom
+spec:
+  selector:
+    app: nginx-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nginx-gateway
+  namespace: ecom
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nginx-gateway
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
