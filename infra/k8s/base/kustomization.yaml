@@ -4,7 +4,10 @@ namespace: ecom
 resources:
   - namespace.yaml
   - configmap.yaml
-  - secret.template.yaml
+  - customer-web-deployment.yaml
+  - admin-panel-deployment.yaml
+  - nginx-gateway.yaml
+  - ingress.yaml
   - user-service-deployment.yaml
   - product-service-deployment.yaml
   - inventory-service-deployment.yaml

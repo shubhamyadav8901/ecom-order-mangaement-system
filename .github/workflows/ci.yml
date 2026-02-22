@@ -95,12 +95,18 @@ jobs:
       - name: Dependency review
         uses: actions/dependency-review-action@v4
 
-  docker-build:
-    name: Docker - Build Service Images
+  docker-images:
+    name: Docker - Build and Publish Images
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     needs:
       - backend-verify
       - frontend-quality
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_TAG: ${{ github.sha }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -116,17 +122,126 @@ jobs:
         working-directory: backend
         run: mvn -B -q -DskipTests package
 
-      - name: Build user-service image
-        run: docker build -f backend/Dockerfile --build-arg JAR_FILE=backend/user-service/target/user-service-0.0.1-SNAPSHOT.jar -t local/user-service:ci .
+      - name: Resolve image owner
+        id: meta
+        shell: bash
+        run: echo "owner=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
-      - name: Build product-service image
-        run: docker build -f backend/Dockerfile --build-arg JAR_FILE=backend/product-service/target/product-service-0.0.1-SNAPSHOT.jar -t local/product-service:ci .
+      - name: Build backend service images
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${{ steps.meta.outputs.owner }}"
+          for service in user-service product-service inventory-service order-service payment-service; do
+            image="${REGISTRY}/${owner}/${service}"
+            docker build \
+              -f backend/Dockerfile \
+              --build-arg JAR_FILE="backend/${service}/target/${service}-0.0.1-SNAPSHOT.jar" \
+              -t "${image}:${IMAGE_TAG}" \
+              -t "${image}:latest" \
+              .
+          done
 
-      - name: Build inventory-service image
-        run: docker build -f backend/Dockerfile --build-arg JAR_FILE=backend/inventory-service/target/inventory-service-0.0.1-SNAPSHOT.jar -t local/inventory-service:ci .
+      - name: Build frontend images
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${{ steps.meta.outputs.owner }}"
 
-      - name: Build order-service image
-        run: docker build -f backend/Dockerfile --build-arg JAR_FILE=backend/order-service/target/order-service-0.0.1-SNAPSHOT.jar -t local/order-service:ci .
+          docker build \
+            -f frontend/customer-web/Dockerfile \
+            -t "${REGISTRY}/${owner}/customer-web:${IMAGE_TAG}" \
+            -t "${REGISTRY}/${owner}/customer-web:latest" \
+            .
 
-      - name: Build payment-service image
-        run: docker build -f backend/Dockerfile --build-arg JAR_FILE=backend/payment-service/target/payment-service-0.0.1-SNAPSHOT.jar -t local/payment-service:ci .
+          docker build \
+            -f frontend/admin-panel/Dockerfile \
+            -t "${REGISTRY}/${owner}/admin-panel:${IMAGE_TAG}" \
+            -t "${REGISTRY}/${owner}/admin-panel:latest" \
+            .
+
+      - name: Login to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push images to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        run: |
+          set -euo pipefail
+          owner="${{ steps.meta.outputs.owner }}"
+          for image in user-service product-service inventory-service order-service payment-service customer-web admin-panel; do
+            docker push "${REGISTRY}/${owner}/${image}:${IMAGE_TAG}"
+            docker push "${REGISTRY}/${owner}/${image}:latest"
+          done
+
+  deploy-k8s:
+    name: Deploy - Kubernetes (prod overlay)
+    runs-on: ubuntu-latest
+    needs:
+      - docker-images
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.KUBE_CONFIG_DATA != ''
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: v1.30.0
+
+      - name: Set up kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: 5.4.3
+
+      - name: Configure kubeconfig
+        shell: bash
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          set -euo pipefail
+          mkdir -p "${HOME}/.kube"
+          if echo "${KUBE_CONFIG_DATA}" | base64 --decode > "${HOME}/.kube/config" 2>/dev/null; then
+            echo "Loaded base64 kubeconfig"
+          else
+            echo "${KUBE_CONFIG_DATA}" > "${HOME}/.kube/config"
+            echo "Loaded raw kubeconfig"
+          fi
+          chmod 600 "${HOME}/.kube/config"
+
+      - name: Deploy prod overlay with commit image tags
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          owner="${GITHUB_REPOSITORY_OWNER,,}"
+          cd infra/k8s/overlays/prod
+          kustomize edit set image \
+            ghcr.io/babe8901/user-service=ghcr.io/${owner}/user-service:${IMAGE_TAG} \
+            ghcr.io/babe8901/product-service=ghcr.io/${owner}/product-service:${IMAGE_TAG} \
+            ghcr.io/babe8901/inventory-service=ghcr.io/${owner}/inventory-service:${IMAGE_TAG} \
+            ghcr.io/babe8901/order-service=ghcr.io/${owner}/order-service:${IMAGE_TAG} \
+            ghcr.io/babe8901/payment-service=ghcr.io/${owner}/payment-service:${IMAGE_TAG} \
+            ghcr.io/babe8901/customer-web=ghcr.io/${owner}/customer-web:${IMAGE_TAG} \
+            ghcr.io/babe8901/admin-panel=ghcr.io/${owner}/admin-panel:${IMAGE_TAG}
+          cd -
+          kubectl apply -k infra/k8s/overlays/prod
+
+      - name: Verify rollouts
+        run: |
+          kubectl rollout status deployment/user-service -n ecom --timeout=180s
+          kubectl rollout status deployment/product-service -n ecom --timeout=180s
+          kubectl rollout status deployment/inventory-service -n ecom --timeout=180s
+          kubectl rollout status deployment/order-service -n ecom --timeout=180s
+          kubectl rollout status deployment/payment-service -n ecom --timeout=180s
+          kubectl rollout status deployment/customer-web -n ecom --timeout=180s
+          kubectl rollout status deployment/admin-panel -n ecom --timeout=180s
+          kubectl rollout status deployment/nginx-gateway -n ecom --timeout=180s
