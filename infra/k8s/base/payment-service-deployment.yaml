@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: ghcr.io/babe8901/payment-service:latest
+          image: ghcr.io/shubhamyadav8901/payment-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8085

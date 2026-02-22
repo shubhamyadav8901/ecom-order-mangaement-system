@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: admin-panel
-          image: ghcr.io/babe8901/admin-panel:latest
+          image: ghcr.io/shubhamyadav8901/admin-panel:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

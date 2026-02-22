@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: customer-web
-          image: ghcr.io/babe8901/customer-web:latest
+          image: ghcr.io/shubhamyadav8901/customer-web:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80

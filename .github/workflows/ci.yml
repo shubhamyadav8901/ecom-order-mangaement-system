@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - 'codex/**'
   pull_request:
 
 concurrency:
@@ -184,24 +183,43 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - docker-images
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.KUBE_CONFIG_DATA != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
     steps:
+      - name: Check deploy prerequisites
+        id: deploy_guard
+        shell: bash
+        env:
+          KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
+        run: |
+          set -euo pipefail
+          if [ -n "${KUBE_CONFIG_DATA}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+            echo "Kubernetes deploy is enabled."
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "KUBE_CONFIG_DATA is not set. Skipping deploy steps."
+          fi
+
       - name: Checkout
+        if: steps.deploy_guard.outputs.enabled == 'true'
         uses: actions/checkout@v4
 
       - name: Set up kubectl
+        if: steps.deploy_guard.outputs.enabled == 'true'
         uses: azure/setup-kubectl@v4
         with:
           version: v1.30.0
 
       - name: Set up kustomize
+        if: steps.deploy_guard.outputs.enabled == 'true'
         uses: imranismail/setup-kustomize@v2
         with:
           kustomize-version: 5.4.3
 
       - name: Configure kubeconfig
+        if: steps.deploy_guard.outputs.enabled == 'true'
         shell: bash
         env:
           KUBE_CONFIG_DATA: ${{ secrets.KUBE_CONFIG_DATA }}
@@ -217,6 +235,7 @@ jobs:
           chmod 600 "${HOME}/.kube/config"
 
       - name: Deploy prod overlay with commit image tags
+        if: steps.deploy_guard.outputs.enabled == 'true'
         shell: bash
         env:
           IMAGE_TAG: ${{ github.sha }}
@@ -225,17 +244,18 @@ jobs:
           owner="${GITHUB_REPOSITORY_OWNER,,}"
           cd infra/k8s/overlays/prod
           kustomize edit set image \
-            ghcr.io/babe8901/user-service=ghcr.io/${owner}/user-service:${IMAGE_TAG} \
-            ghcr.io/babe8901/product-service=ghcr.io/${owner}/product-service:${IMAGE_TAG} \
-            ghcr.io/babe8901/inventory-service=ghcr.io/${owner}/inventory-service:${IMAGE_TAG} \
-            ghcr.io/babe8901/order-service=ghcr.io/${owner}/order-service:${IMAGE_TAG} \
-            ghcr.io/babe8901/payment-service=ghcr.io/${owner}/payment-service:${IMAGE_TAG} \
-            ghcr.io/babe8901/customer-web=ghcr.io/${owner}/customer-web:${IMAGE_TAG} \
-            ghcr.io/babe8901/admin-panel=ghcr.io/${owner}/admin-panel:${IMAGE_TAG}
+            ghcr.io/shubhamyadav8901/user-service=ghcr.io/${owner}/user-service:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/product-service=ghcr.io/${owner}/product-service:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/inventory-service=ghcr.io/${owner}/inventory-service:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/order-service=ghcr.io/${owner}/order-service:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/payment-service=ghcr.io/${owner}/payment-service:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/customer-web=ghcr.io/${owner}/customer-web:${IMAGE_TAG} \
+            ghcr.io/shubhamyadav8901/admin-panel=ghcr.io/${owner}/admin-panel:${IMAGE_TAG}
           cd -
           kubectl apply -k infra/k8s/overlays/prod
 
       - name: Verify rollouts
+        if: steps.deploy_guard.outputs.enabled == 'true'
         run: |
           kubectl rollout status deployment/user-service -n ecom --timeout=180s
           kubectl rollout status deployment/product-service -n ecom --timeout=180s
