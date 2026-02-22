@@ -5,17 +5,17 @@ resources:
 patches:
   - path: ingress-host-tls-patch.yaml
 images:
-  - name: ghcr.io/babe8901/user-service
+  - name: ghcr.io/shubhamyadav8901/user-service
     newTag: latest
-  - name: ghcr.io/babe8901/product-service
+  - name: ghcr.io/shubhamyadav8901/product-service
     newTag: latest
-  - name: ghcr.io/babe8901/inventory-service
+  - name: ghcr.io/shubhamyadav8901/inventory-service
     newTag: latest
-  - name: ghcr.io/babe8901/order-service
+  - name: ghcr.io/shubhamyadav8901/order-service
     newTag: latest
-  - name: ghcr.io/babe8901/payment-service
+  - name: ghcr.io/shubhamyadav8901/payment-service
     newTag: latest
-  - name: ghcr.io/babe8901/customer-web
+  - name: ghcr.io/shubhamyadav8901/customer-web
     newTag: latest
-  - name: ghcr.io/babe8901/admin-panel
+  - name: ghcr.io/shubhamyadav8901/admin-panel
     newTag: latest

@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: inventory-service
-          image: ghcr.io/babe8901/inventory-service:latest
+          image: ghcr.io/shubhamyadav8901/inventory-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083

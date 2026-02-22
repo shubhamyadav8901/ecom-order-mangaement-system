@@ -77,13 +77,13 @@ If deploying manually, set tags in an overlay:
 
 ```bash
 cd infra/k8s/overlays/prod
-kustomize edit set image ghcr.io/babe8901/user-service=ghcr.io/<owner>/user-service:<tag>
-kustomize edit set image ghcr.io/babe8901/product-service=ghcr.io/<owner>/product-service:<tag>
-kustomize edit set image ghcr.io/babe8901/inventory-service=ghcr.io/<owner>/inventory-service:<tag>
-kustomize edit set image ghcr.io/babe8901/order-service=ghcr.io/<owner>/order-service:<tag>
-kustomize edit set image ghcr.io/babe8901/payment-service=ghcr.io/<owner>/payment-service:<tag>
-kustomize edit set image ghcr.io/babe8901/customer-web=ghcr.io/<owner>/customer-web:<tag>
-kustomize edit set image ghcr.io/babe8901/admin-panel=ghcr.io/<owner>/admin-panel:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/user-service=ghcr.io/<owner>/user-service:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/product-service=ghcr.io/<owner>/product-service:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/inventory-service=ghcr.io/<owner>/inventory-service:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/order-service=ghcr.io/<owner>/order-service:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/payment-service=ghcr.io/<owner>/payment-service:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/customer-web=ghcr.io/<owner>/customer-web:<tag>
+kustomize edit set image ghcr.io/shubhamyadav8901/admin-panel=ghcr.io/<owner>/admin-panel:<tag>
 cd -
 kubectl apply -k infra/k8s/overlays/prod
 ```
